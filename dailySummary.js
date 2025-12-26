@@ -80,10 +80,11 @@ async function run() {
     );
     const commits = await res.json();
 
+    const recent = Array.isArray(commits) ? commits.slice(0, 4) : [];
     filteredCommits.push(
-      ...commits.map((c) => ({
+      ...recent.map((c) => ({
         repo,
-        message: c.commit.message.split("\n")[0],
+        message: c.commit?.message?.split("\n")[0] ?? "",
       }))
     );
   }
