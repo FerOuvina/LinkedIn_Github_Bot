@@ -3,16 +3,22 @@ import "dotenv/config";
 const GITHUB_TOKEN = process.env.GITHUB_TOKEN;
 const LINKEDIN_TOKEN = process.env.LINKEDIN_ACCESS_TOKEN;
 const LINKEDIN_AUTHOR = process.env.LINKEDIN_AUTHOR_URN;
-const GITHUB_USER = process.env.GITHUB_USER; // your GitHub username
+const GITHUB_USER = process.env.GITHUB_USER;
+const HF_API_KEY = process.env.HUGGINGFACE_API_KEY; // Hugging Face API Key
 const DRY_RUN = process.argv.includes("--dry-run");
 
-if (!GITHUB_TOKEN || !LINKEDIN_TOKEN || !LINKEDIN_AUTHOR || !GITHUB_USER) {
+if (
+  !GITHUB_TOKEN ||
+  !LINKEDIN_TOKEN ||
+  !LINKEDIN_AUTHOR ||
+  !GITHUB_USER ||
+  !HF_API_KEY
+) {
   throw new Error(
-    "Missing one or more required env variables: GITHUB_TOKEN, LINKEDIN_ACCESS_TOKEN, LINKEDIN_AUTHOR_URN, GITHUB_USER"
+    "Missing env variables: GITHUB_TOKEN, LINKEDIN_ACCESS_TOKEN, LINKEDIN_AUTHOR_URN, GITHUB_USER, HUGGINGFACE_API_KEY"
   );
 }
 
-// 1 Calculate "today" in UTC
 const since = new Date();
 since.setUTCHours(0, 0, 0, 0);
 
@@ -22,15 +28,60 @@ const headers = {
   Accept: "application/vnd.github+json",
 };
 
+// Helper: call Hugging Face text-generation API
+async function generateSummary(prompt) {
+  const url = "https://router.huggingface.co/v1/chat/completions";
+  const model = "zai-org/GLM-4.7";
+
+  const payload = {
+    model,
+    messages: [
+      {
+        role: "system",
+        content:
+          "Start the post with something like: `This is what I am working on right now` or similar, respond ONLY with the LinkedIn post text. Do not add any preamble, explanation, or labels, and DON'T forget to add a space after every emoji.",
+      },
+      {
+        role: "user",
+        content: prompt,
+      },
+    ],
+  };
+
+  const res = await fetch(url, {
+    method: "POST",
+    headers: {
+      Authorization: `Bearer ${HF_API_KEY}`,
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify(payload),
+  });
+
+  const data = await res.json();
+  if (!res.ok) throw new Error(data.error || JSON.stringify(data));
+
+  // Chat completion response: choices[0].message.content
+  if (Array.isArray(data.choices) && data.choices[0]?.message?.content) {
+    return data.choices[0].message.content;
+  }
+
+  // Fallbacks for older response shapes
+  if (Array.isArray(data) && data[0]?.generated_text)
+    return data[0].generated_text;
+  if (data.generated_text) return data.generated_text;
+
+  throw new Error(
+    `Unexpected Hugging Face response shape: ${JSON.stringify(data)}`
+  );
+}
+
 async function run() {
-  // 2 Fetch recent events
   const eventsRes = await fetch(
     `https://api.github.com/users/${GITHUB_USER}/events`,
     { headers }
   );
   const events = await eventsRes.json();
 
-  // 3 Count commits per repo
   const repoActivity = {};
   for (const event of events) {
     if (event.type !== "PushEvent") continue;
@@ -42,7 +93,6 @@ async function run() {
     repoActivity[repoName] = (repoActivity[repoName] || 0) + commitCount;
   }
 
-  // 4 Select top 3 active repos
   const topRepos = Object.entries(repoActivity)
     .sort((a, b) => b[1] - a[1])
     .slice(0, 3)
@@ -53,7 +103,6 @@ async function run() {
     return;
   }
 
-  // 5 Fetch and filter commits for top repos
   const insignificantKeywords = [
     "typo",
     "lint",
@@ -64,13 +113,7 @@ async function run() {
     "docs",
     "test",
   ];
-
-  const allCommits = [];
-
-  const filteredCommits = allCommits.filter((c) => {
-    const msg = c.message.toLowerCase();
-    return !insignificantKeywords.some((kw) => msg.includes(kw));
-  });
+  const filteredCommits = [];
 
   for (const fullRepo of topRepos) {
     const [owner, repo] = fullRepo.split("/");
@@ -78,15 +121,20 @@ async function run() {
       `https://api.github.com/repos/${owner}/${repo}/commits?since=${since.toISOString()}`,
       { headers }
     );
-    const commits = await res.json();
+    const commitsData = await res.json();
+    const commits = Array.isArray(commitsData) ? commitsData : [];
 
-    const recent = Array.isArray(commits) ? commits.slice(0, 4) : [];
-    filteredCommits.push(
-      ...recent.map((c) => ({
-        repo,
-        message: c.commit?.message?.split("\n")[0] ?? "",
-      }))
-    );
+    const significant = commits
+      .map((c) => ({ repo, message: c.commit?.message?.split("\n")[0] ?? "" }))
+      .filter(
+        (c) =>
+          !insignificantKeywords.some((kw) =>
+            c.message.toLowerCase().includes(kw)
+          )
+      )
+      .slice(0, 4);
+
+    filteredCommits.push(...significant);
   }
 
   if (filteredCommits.length === 0) {
@@ -94,33 +142,22 @@ async function run() {
     return;
   }
 
-  // 6 Build LinkedIn summary
-  const groupedByRepo = {};
-  for (const c of filteredCommits) {
-    if (!groupedByRepo[c.repo]) groupedByRepo[c.repo] = [];
-    groupedByRepo[c.repo].push(c.message);
-  }
+  // Build prompt for AI summary
+  const commitsText = filteredCommits
+    .map((c) => `${c.repo}: ${c.message}`)
+    .join("\n");
+  const prompt = `
+    Write a concise LinkedIn post summarizing the following commits from my GitHub repositories.
+    Make it professional, readable, and engaging. Use emojis for features and fixes.
+    Keep it short and include clickable repo URLs if possible.
+    DON'T forget to add a space after every emoji.
+    Commits:
+    ${commitsText}`;
 
-  let postText = "🛠 Daily dev update\n\nToday's progress:\n";
-  for (const [repo, messages] of Object.entries(groupedByRepo)) {
-    const owner = GITHUB_USER;
-    const repoUrl = `https://github.com/${owner}/${repo}`;
+  const aiSummary = await generateSummary(prompt);
 
-    postText += `📦 ${repo}: ${repoUrl}\n`;
+  const postText = `${aiSummary}\n\n🔗 My GitHub: https://github.com/${GITHUB_USER}\n🔗 My Portfolio: https://ouvina-fernando.vercel.app`;
 
-    messages.forEach((m) => {
-      let msg = m;
-      if (/^feat:/i.test(msg)) msg = msg.replace(/^feat:\s*/i, "✨ ");
-      else if (/^fix:/i.test(msg)) msg = msg.replace(/^fix:\s*/i, "🐛 ");
-      else msg = `• ${msg}`;
-      postText += `${msg}\n`;
-    });
-
-    postText += "\n";
-  }
-  postText += `🔗 My Github: https://github.com/${GITHUB_USER} \n🔗 My Portfolio: https://ouvina-fernando.vercel.app`;
-
-  // 7 Post to LinkedIn (or dry-run)
   if (DRY_RUN) {
     console.log("🧪 DRY RUN — LinkedIn post would be:\n");
     console.log(postText);
@@ -136,9 +173,7 @@ async function run() {
         shareMediaCategory: "NONE",
       },
     },
-    visibility: {
-      "com.linkedin.ugc.MemberNetworkVisibility": "PUBLIC",
-    },
+    visibility: { "com.linkedin.ugc.MemberNetworkVisibility": "PUBLIC" },
   };
 
   const res = await fetch("https://api.linkedin.com/v2/ugcPosts", {
