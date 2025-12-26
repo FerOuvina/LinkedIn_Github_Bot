@@ -1,4 +1,4 @@
-name: Daily LinkedIn Summary
+name: Daily GitHub → LinkedIn Summary
 
 on:
   schedule:
