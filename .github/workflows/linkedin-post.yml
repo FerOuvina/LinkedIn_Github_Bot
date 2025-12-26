@@ -23,7 +23,7 @@ jobs:
 
       - name: Run Daily Summary Script (Live)
         env:
-         GITHUB_USER: ${{ secrets.GITHUB_USER }}
+         GITHUB_USER: ${{ secrets.HUB_USER }}
          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
          LINKEDIN_ACCESS_TOKEN: ${{ secrets.LINKEDIN_ACCESS_TOKEN }}
          LINKEDIN_AUTHOR_URN: ${{ secrets.LINKEDIN_AUTHOR_URN }}

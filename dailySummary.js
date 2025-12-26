@@ -3,7 +3,7 @@ import "dotenv/config";
 const GITHUB_TOKEN = process.env.GITHUB_TOKEN;
 const LINKEDIN_TOKEN = process.env.LINKEDIN_ACCESS_TOKEN;
 const LINKEDIN_AUTHOR = process.env.LINKEDIN_AUTHOR_URN;
-const GITHUB_USER = process.env.GITHUB_USER;
+const HUB_USER = process.env.HUB_USER;
 const HF_API_KEY = process.env.HUGGINGFACE_API_KEY;
 const DRY_RUN = process.argv.includes("--dry-run");
 
@@ -11,7 +11,7 @@ const requiredEnv = {
   GITHUB_TOKEN,
   LINKEDIN_TOKEN,
   LINKEDIN_AUTHOR,
-  GITHUB_USER,
+  HUB_USER,
   HF_API_KEY,
 };
 
@@ -81,7 +81,7 @@ async function generateSummary(prompt) {
 
 async function run() {
   const eventsRes = await fetch(
-    `https://api.github.com/users/${GITHUB_USER}/events`,
+    `https://api.github.com/users/${HUB_USER}/events`,
     { headers }
   );
   const events = await eventsRes.json();
@@ -160,7 +160,7 @@ async function run() {
 
   const aiSummary = await generateSummary(prompt);
 
-  const postText = `${aiSummary}\n\n🔗 My GitHub: https://github.com/${GITHUB_USER}\n🔗 My Portfolio: https://ouvina-fernando.vercel.app`;
+  const postText = `${aiSummary}\n\n🔗 My GitHub: https://github.com/${HUB_USER}\n🔗 My Portfolio: https://ouvina-fernando.vercel.app`;
 
   if (DRY_RUN) {
     console.log("🧪 DRY RUN — LinkedIn post would be:\n");
