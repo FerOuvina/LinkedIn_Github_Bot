@@ -1,22 +1,29 @@
-name: Daily LinkedIn Summary
+name: Daily GitHub → LinkedIn Summary
 
 on:
   schedule:
-    - cron: "0 18 * * *"
-  workflow_dispatch:
+    - cron: '0 18 * * *'
+  workflow_dispatch: # allows manual trigger
 
 jobs:
-  post:
+  post-summary:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - name: Checkout repo
+        uses: actions/checkout@v3
 
-      - uses: actions/setup-node@v4
+      - name: Set up Node.js
+        uses: actions/setup-node@v3
         with:
-          node-version: 24
+          node-version: '24'
 
-      - run: node scripts/dailySummary.js
+      - name: Install dependencies
+        run: npm install
+
+      - name: Run daily summary
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GITHUB_USER: FerOuvina
           LINKEDIN_ACCESS_TOKEN: ${{ secrets.LINKEDIN_ACCESS_TOKEN }}
           LINKEDIN_AUTHOR_URN: ${{ secrets.LINKEDIN_AUTHOR_URN }}
+        run: node dailySummary.js
