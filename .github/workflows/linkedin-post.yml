@@ -8,7 +8,7 @@ on:
 jobs:
   post-summary:
     runs-on: ubuntu-latest
-
+    
     steps:
       - name: Checkout repository
         uses: actions/checkout@v3
@@ -22,10 +22,10 @@ jobs:
         run: npm install
 
       - name: Run Daily Summary Script (Live)
-       env:
+        env:
          GITHUB_USER: ${{ secrets.GITHUB_USER }}
          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
          LINKEDIN_ACCESS_TOKEN: ${{ secrets.LINKEDIN_ACCESS_TOKEN }}
          LINKEDIN_AUTHOR_URN: ${{ secrets.LINKEDIN_AUTHOR_URN }}
          HUGGINGFACE_API_KEY: ${{ secrets.HUGGINGFACE_API_KEY }}
-       run: node dailySummary.js
+        run: node dailySummary.js
