@@ -4,19 +4,23 @@ const GITHUB_TOKEN = process.env.GITHUB_TOKEN;
 const LINKEDIN_TOKEN = process.env.LINKEDIN_ACCESS_TOKEN;
 const LINKEDIN_AUTHOR = process.env.LINKEDIN_AUTHOR_URN;
 const GITHUB_USER = process.env.GITHUB_USER;
-const HF_API_KEY = process.env.HUGGINGFACE_API_KEY; // Hugging Face API Key
+const HF_API_KEY = process.env.HUGGINGFACE_API_KEY;
 const DRY_RUN = process.argv.includes("--dry-run");
 
-if (
-  !GITHUB_TOKEN ||
-  !LINKEDIN_TOKEN ||
-  !LINKEDIN_AUTHOR ||
-  !GITHUB_USER ||
-  !HF_API_KEY
-) {
-  throw new Error(
-    "Missing env variables: GITHUB_TOKEN, LINKEDIN_ACCESS_TOKEN, LINKEDIN_AUTHOR_URN, GITHUB_USER, HUGGINGFACE_API_KEY"
-  );
+const requiredEnv = {
+  GITHUB_TOKEN,
+  LINKEDIN_TOKEN,
+  LINKEDIN_AUTHOR,
+  GITHUB_USER,
+  HF_API_KEY,
+};
+
+const missing = Object.entries(requiredEnv)
+  .filter(([_, value]) => !value)
+  .map(([key]) => key);
+
+if (missing.length > 0) {
+  throw new Error(`Missing env variables: ${missing.join(", ")}`);
 }
 
 const since = new Date();
