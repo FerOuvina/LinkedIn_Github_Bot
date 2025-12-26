@@ -1,19 +1,14 @@
-# Privacy Policy
+## GitHub → LinkedIn Automation
 
-This application is a personal automation project created for learning and portfolio purposes.
+This project demonstrates how to automate LinkedIn posts using GitHub Actions and the LinkedIn API.
 
-## Data Access
-The application accesses limited LinkedIn and GitHub data solely to:
-- Read GitHub commit information from repositories owned by the developer
-- Publish posts to the developer’s own LinkedIn profile
+### Features
+- Triggered on GitHub push
+- Extracts commit data
+- Posts formatted updates to LinkedIn
+- Uses OAuth 2.0 and GitHub Secrets
 
-## Data Storage
-No personal data is stored, shared, or sold.
-All data is processed transiently during automation execution.
-
-## Third Parties
-No data is shared with third parties.
-
-## Contact
-If you have any questions, please contact:
-contactfernando07@gmail.com
+### Technologies
+- Node.js
+- GitHub Actions
+- LinkedIn REST API
