@@ -23,8 +23,8 @@ if (missing.length > 0) {
   throw new Error(`Missing env variables: ${missing.join(", ")}`);
 }
 
-const since = new Date();
-since.setUTCHours(0, 0, 0, 0);
+const HOURS = 24;
+const since = new Date(Date.now() - HOURS * 60 * 60 * 1000);
 
 const headers = {
   Authorization: `Bearer ${GITHUB_TOKEN}`,
