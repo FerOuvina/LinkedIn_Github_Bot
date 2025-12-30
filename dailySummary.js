@@ -43,7 +43,7 @@ async function generateSummary(prompt) {
       {
         role: "system",
         content:
-          "Start the post with something like: `This is what I am working on right now` or similar, respond ONLY with the LinkedIn post text. Do not add any preamble, explanation, or labels, and DON'T forget to add a space after every emoji.",
+          "Start the post with normal greetings, something nice or similar but short, respond ONLY with the LinkedIn post text. Do not add any preamble, explanation, or labels, and DON'T forget to add a space after every emoji.",
       },
       {
         role: "user",
@@ -151,7 +151,7 @@ async function run() {
     .map((c) => `${c.repo}: ${c.message}`)
     .join("\n");
   const prompt = `
-    Write a concise LinkedIn post summarizing the following commits from my GitHub repositories.
+    Write a concise LinkedIn post summarizing the following commits from my GitHub repositories. For the github user use ${HUB_USER}.
     Make it professional, readable, and engaging. Use emojis for features and fixes.
     Keep it short and include clickable repo URLs if possible.
     DON'T forget to add a space after every emoji.
@@ -160,7 +160,7 @@ async function run() {
 
   const aiSummary = await generateSummary(prompt);
 
-  const postText = `${aiSummary}\n\n🔗 My GitHub: https://github.com/${HUB_USER}\n🔗 My Portfolio: https://ouvina-fernando.vercel.app`;
+  const postText = `${aiSummary}\n\n📝 This post was automated using the LinkedIn API, if you wanna learn more about it check out my repository on Github.\n🔗 My GitHub: https://github.com/${HUB_USER}\n🔗 My Portfolio: https://ouvina-fernando.vercel.app`;
 
   if (DRY_RUN) {
     console.log("🧪 DRY RUN — LinkedIn post would be:\n");
