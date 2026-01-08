@@ -2,5 +2,27 @@
   "dependencies": {
     "dotenv": "^17.2.3"
   },
-  "type": "module"
+  "type": "module",
+  "name": "linkedin_github_bot",
+  "version": "1.0.0",
+  "description": "This project demonstrates how to automate LinkedIn posts using GitHub Actions and the LinkedIn API.",
+  "main": "dailySummary.js",
+  "devDependencies": {
+    "vitest": "^4.0.16"
+  },
+  "scripts": {
+    "test": "vitest",
+    "test:run": "vitest run"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/FerOuvina/LinkedIn_Github_Bot.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/FerOuvina/LinkedIn_Github_Bot/issues"
+  },
+  "homepage": "https://github.com/FerOuvina/LinkedIn_Github_Bot#readme"
 }

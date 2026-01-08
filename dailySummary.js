@@ -1,4 +1,5 @@
 import "dotenv/config";
+import getSinceDate from "./getSinceDate.js";
 
 const GITHUB_TOKEN = process.env.GITHUB_TOKEN;
 const LINKEDIN_TOKEN = process.env.LINKEDIN_ACCESS_TOKEN;
@@ -15,6 +16,9 @@ const requiredEnv = {
   HF_API_KEY,
 };
 
+const now = 24;
+const since = getSinceDate(now);
+
 const missing = Object.entries(requiredEnv)
   .filter(([_, value]) => !value)
   .map(([key]) => key);
@@ -23,13 +27,15 @@ if (missing.length > 0) {
   throw new Error(`Missing env variables: ${missing.join(", ")}`);
 }
 
-const HOURS = 24;
-const since = new Date(Date.now() - HOURS * 60 * 60 * 1000);
-
 const headers = {
   Authorization: `Bearer ${GITHUB_TOKEN}`,
   "User-Agent": "daily-summary-bot",
   Accept: "application/vnd.github+json",
+};
+
+const HF_HEADERS = {
+  Authorization: `Bearer ${HF_API_KEY}`,
+  "Content-Type": "application/json",
 };
 
 // Helper: call Hugging Face text-generation API
@@ -54,10 +60,7 @@ async function generateSummary(prompt) {
 
   const res = await fetch(url, {
     method: "POST",
-    headers: {
-      Authorization: `Bearer ${HF_API_KEY}`,
-      "Content-Type": "application/json",
-    },
+    HF_HEADERS,
     body: JSON.stringify(payload),
   });
 
