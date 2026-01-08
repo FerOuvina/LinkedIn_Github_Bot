@@ -171,3 +171,18 @@ export default async function run() {
 
   console.log("LinkedIn status:", res.status);
 }
+
+// TESTS Functions
+
+export function filterSignificantCommits(commits, insignificantKeywords) {
+  return commits.filter((c) => {
+    const msg = c.message.toLowerCase();
+    return !insignificantKeywords.some((kw) => msg.includes(kw));
+  });
+}
+
+export function formatCommitMessage(msg) {
+  if (/^feat:/i.test(msg)) return "✨ " + msg.replace(/^feat:\s*/i, "");
+  if (/^fix:/i.test(msg)) return "🐛 " + msg.replace(/^fix:\s*/i, "");
+  return "• " + msg;
+}
