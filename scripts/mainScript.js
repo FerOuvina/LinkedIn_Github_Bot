@@ -1,42 +1,17 @@
-import "dotenv/config";
 import getSinceDate from "./getSinceDate.js";
-
-const GITHUB_TOKEN = process.env.GITHUB_TOKEN;
-const LINKEDIN_TOKEN = process.env.LINKEDIN_ACCESS_TOKEN;
-const LINKEDIN_AUTHOR = process.env.LINKEDIN_AUTHOR_URN;
-const HUB_USER = process.env.HUB_USER;
-const HF_API_KEY = process.env.HUGGINGFACE_API_KEY;
-const DRY_RUN = process.argv.includes("--dry-run");
-
-const requiredEnv = {
-  GITHUB_TOKEN,
-  LINKEDIN_TOKEN,
+import {
+  GIT_HEADERS,
+  HF_HEADERS,
+  LINKEDIN_HEADERS,
   LINKEDIN_AUTHOR,
   HUB_USER,
-  HF_API_KEY,
-};
+} from "./consts.js";
 
-const now = 24;
-const since = getSinceDate(now);
+const DRY_RUN = process.argv.includes("--dry-run");
 
-const missing = Object.entries(requiredEnv)
-  .filter(([_, value]) => !value)
-  .map(([key]) => key);
-
-if (missing.length > 0) {
-  throw new Error(`Missing env variables: ${missing.join(", ")}`);
-}
-
-const headers = {
-  Authorization: `Bearer ${GITHUB_TOKEN}`,
-  "User-Agent": "daily-summary-bot",
-  Accept: "application/vnd.github+json",
-};
-
-const HF_HEADERS = {
-  Authorization: `Bearer ${HF_API_KEY}`,
-  "Content-Type": "application/json",
-};
+// Get previous 24hs date
+const now = new Date(Date.now());
+const since = getSinceDate(24, now);
 
 // Helper: call Hugging Face text-generation API
 async function generateSummary(prompt) {
@@ -60,7 +35,7 @@ async function generateSummary(prompt) {
 
   const res = await fetch(url, {
     method: "POST",
-    HF_HEADERS,
+    headers: HF_HEADERS,
     body: JSON.stringify(payload),
   });
 
@@ -82,13 +57,15 @@ async function generateSummary(prompt) {
   );
 }
 
-async function run() {
+// Main Script
+export default async function run() {
   const eventsRes = await fetch(
     `https://api.github.com/users/${HUB_USER}/events`,
-    { headers }
+    { GIT_HEADERS }
   );
   const events = await eventsRes.json();
 
+  // Get repo activity
   const repoActivity = {};
   for (const event of events) {
     if (event.type !== "PushEvent") continue;
@@ -100,6 +77,7 @@ async function run() {
     repoActivity[repoName] = (repoActivity[repoName] || 0) + commitCount;
   }
 
+  // Get last 3 repos with activity and check if there was any activity
   const topRepos = Object.entries(repoActivity)
     .sort((a, b) => b[1] - a[1])
     .slice(0, 3)
@@ -110,6 +88,7 @@ async function run() {
     return;
   }
 
+  // Check for non-important keywords and filter commits based on them
   const insignificantKeywords = [
     "typo",
     "lint",
@@ -126,7 +105,7 @@ async function run() {
     const [owner, repo] = fullRepo.split("/");
     const res = await fetch(
       `https://api.github.com/repos/${owner}/${repo}/commits?since=${since.toISOString()}`,
-      { headers }
+      { GIT_HEADERS }
     );
     const commitsData = await res.json();
     const commits = Array.isArray(commitsData) ? commitsData : [];
@@ -165,6 +144,7 @@ async function run() {
 
   const postText = `${aiSummary}\n\n📝 This post was automated using the LinkedIn API, if you wanna learn more about it check out my repository on Github.\n🔗 My GitHub: https://github.com/${HUB_USER}\n🔗 My Portfolio: https://ouvina-fernando.vercel.app`;
 
+  // Dry run for testing
   if (DRY_RUN) {
     console.log("🧪 DRY RUN — LinkedIn post would be:\n");
     console.log(postText);
@@ -185,15 +165,9 @@ async function run() {
 
   const res = await fetch("https://api.linkedin.com/v2/ugcPosts", {
     method: "POST",
-    headers: {
-      Authorization: `Bearer ${LINKEDIN_TOKEN}`,
-      "X-Restli-Protocol-Version": "2.0.0",
-      "Content-Type": "application/json",
-    },
+    headers: LINKEDIN_HEADERS,
     body: JSON.stringify(body),
   });
 
   console.log("LinkedIn status:", res.status);
 }
-
-run().catch((err) => console.error(err));

@@ -3,12 +3,12 @@ name: Daily GitHub → LinkedIn Summary
 on:
   schedule:
     - cron: "0 18 * * *"
-  workflow_dispatch: 
+  workflow_dispatch:
 
 jobs:
   post-summary:
     runs-on: ubuntu-latest
-    
+
     steps:
       - name: Checkout repository
         uses: actions/checkout@v3
@@ -23,9 +23,9 @@ jobs:
 
       - name: Run Daily Summary Script (Live)
         env:
-         HUB_USER: ${{ secrets.HUB_USER }}
-         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-         LINKEDIN_ACCESS_TOKEN: ${{ secrets.LINKEDIN_ACCESS_TOKEN }}
-         LINKEDIN_AUTHOR_URN: ${{ secrets.LINKEDIN_AUTHOR_URN }}
-         HUGGINGFACE_API_KEY: ${{ secrets.HUGGINGFACE_API_KEY }}
-        run: node dailySummary.js
+          HUB_USER: ${{ secrets.HUB_USER }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          LINKEDIN_ACCESS_TOKEN: ${{ secrets.LINKEDIN_ACCESS_TOKEN }}
+          LINKEDIN_AUTHOR_URN: ${{ secrets.LINKEDIN_AUTHOR_URN }}
+          HUGGINGFACE_API_KEY: ${{ secrets.HUGGINGFACE_API_KEY }}
+        run: node ./scripts/dailySummary.js

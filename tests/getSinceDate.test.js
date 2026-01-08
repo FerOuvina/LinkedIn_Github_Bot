@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import getSinceDate from "../getSinceDate";
+import getSinceDate from "../scripts/getSinceDate";
 
 it("calculates last 24 hours correctly", () => {
   const now = new Date("2026-01-08T18:00:00Z");
