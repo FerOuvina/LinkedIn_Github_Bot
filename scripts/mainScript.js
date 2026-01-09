@@ -59,22 +59,28 @@ async function generateSummary(prompt) {
 
 // Main Script
 export default async function run() {
-  const eventsRes = await fetch(
-    `https://api.github.com/users/${HUB_USER}/events`,
-    { GIT_HEADERS }
-  );
-  const events = await eventsRes.json();
-
   // Get repo activity
+  const ownedRepos = await fetch(
+    `https://api.github.com/users/${HUB_USER}/repos?per_page=30`,
+    { headers: GIT_HEADERS }
+  );
+  const repos = await ownedRepos.json();
   const repoActivity = {};
-  for (const event of events) {
-    if (event.type !== "PushEvent") continue;
-    const createdAt = new Date(event.created_at);
-    if (createdAt < since) continue;
 
-    const repoName = event.repo.name;
-    const commitCount = event.payload.commits?.length || 0;
-    repoActivity[repoName] = (repoActivity[repoName] || 0) + commitCount;
+  for (const repo of repos) {
+    const commitsRes = await fetch(
+      `https://api.github.com/repos/${repo.owner.login}/${
+        repo.name
+      }/commits?since=${since.toISOString()}`,
+      { headers: GIT_HEADERS }
+    );
+
+    const commits = await commitsRes.json();
+    if (!Array.isArray(commits) || commits.length === 0) continue;
+
+    repoActivity[`${repo.owner.login}/${repo.name}`] = commits.length;
+
+    console.log(repoActivity);
   }
 
   // Get last 3 repos with activity and check if there was any activity
@@ -105,11 +111,14 @@ export default async function run() {
     const [owner, repo] = fullRepo.split("/");
     const res = await fetch(
       `https://api.github.com/repos/${owner}/${repo}/commits?since=${since.toISOString()}`,
-      { GIT_HEADERS }
+      { headers: GIT_HEADERS }
     );
     const commitsData = await res.json();
     const commits = Array.isArray(commitsData) ? commitsData : [];
-
+    console.log(
+      "Commits before filtering:",
+      commits.map((c) => c.commit.message)
+    );
     const significant = commits
       .map((c) => ({ repo, message: c.commit?.message?.split("\n")[0] ?? "" }))
       .filter(
