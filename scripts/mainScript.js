@@ -79,8 +79,6 @@ export default async function run() {
     if (!Array.isArray(commits) || commits.length === 0) continue;
 
     repoActivity[`${repo.owner.login}/${repo.name}`] = commits.length;
-
-    console.log(repoActivity);
   }
 
   // Get last 3 repos with activity and check if there was any activity
@@ -95,16 +93,27 @@ export default async function run() {
   }
 
   // Check for non-important keywords and filter commits based on them
-  const insignificantKeywords = [
-    "typo",
-    "lint",
-    "format",
-    "chore",
-    "merge",
-    "ci",
-    "docs",
-    "test",
+  const SCORE_RULES = [
+    { match: /^feat:/i, score: 5 },
+    { match: /^fix:/i, score: 4 },
+    { match: /\b(add|implement|support)\b/i, score: 2 },
+
+    { match: /\btest(s)?\b/i, score: -1 },
+    { match: /\b(chore|lint|format|ci|docs|merge)\b/i, score: -2 },
   ];
+
+  function scoreCommit(message) {
+    let score = 0;
+
+    for (const rule of SCORE_RULES) {
+      if (rule.match.test(message)) {
+        score += rule.score;
+      }
+    }
+
+    return score;
+  }
+
   const filteredCommits = [];
 
   for (const fullRepo of topRepos) {
@@ -115,21 +124,21 @@ export default async function run() {
     );
     const commitsData = await res.json();
     const commits = Array.isArray(commitsData) ? commitsData : [];
-    console.log(
-      "Commits before filtering:",
-      commits.map((c) => c.commit.message)
-    );
-    const significant = commits
-      .map((c) => ({ repo, message: c.commit?.message?.split("\n")[0] ?? "" }))
-      .filter(
-        (c) =>
-          !insignificantKeywords.some((kw) =>
-            c.message.toLowerCase().includes(kw)
-          )
-      )
+
+    const scoredCommits = commits
+      .map((c) => {
+        const message = c.commit?.message?.split("\n")[0] ?? "";
+        return {
+          repo,
+          message,
+          score: scoreCommit(message),
+        };
+      })
+      .filter((c) => c.score >= 1) // threshold
+      .sort((a, b) => b.score - a.score)
       .slice(0, 4);
 
-    filteredCommits.push(...significant);
+    filteredCommits.push(...scoredCommits);
   }
 
   if (filteredCommits.length === 0) {
