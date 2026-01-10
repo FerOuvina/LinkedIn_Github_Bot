@@ -38,13 +38,13 @@ This project was created to:
 
 Today I worked on improving authentication handling and refactoring API logic across multiple repositories.
 
-🔹 Enhanced OAuth flow and token validation.
-🔹 Cleaned up error handling and improved logging.
-🔹 Minor performance optimizations and code structure improvements.
+- Enhanced OAuth flow and token validation.
+- Cleaned up error handling and improved logging.
+- Minor performance optimizations and code structure improvements.
 
 Always iterating and learning. 💻⚙️
 
-(Post content is generated automatically based on recent commits and formatted for LinkedIn.)
+(This post was automated using the LinkedIn API, if you want to learn more about it, check out the repository on Github: https://github.com/FerOuvina/LinkedIn_Github_Bot)
 
 ## 🔐 Security & Authentication
 
