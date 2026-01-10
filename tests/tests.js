@@ -27,5 +27,5 @@ export function scoreCommit(msg) {
 }
 
 export function filterByScore(commits, minScore = 1) {
-  return BROKEN;
+  return commits.filter((c) => c.score >= minScore);
 }
