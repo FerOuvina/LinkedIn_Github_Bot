@@ -1,7 +1,7 @@
 /**
  * The path the built app is served under.
  *
- * GitHub Pages serves this repo at /LinkedIn_Github_Boot/ because there is no
+ * GitHub Pages serves this repo at /LinkedIn_Github_Bot/ because there is no
  * custom domain. The same build also has to work on the local setup server,
  * which serves from the root, so the server strips this prefix when present.
  *
@@ -17,7 +17,7 @@ function normalize(value) {
   return `/${trimmed.replace(/^\/+|\/+$/g, "")}/`;
 }
 
-export const WEB_BASE = normalize(process.env.BASE_PATH ?? "/LinkedIn_Github_Boot/");
+export const WEB_BASE = normalize(process.env.BASE_PATH ?? "/LinkedIn_Github_Bot/");
 
 /** Strip the base prefix from a pathname, for the local server. */
 export function stripBase(pathname, base = WEB_BASE) {
