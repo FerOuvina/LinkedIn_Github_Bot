@@ -8,15 +8,15 @@ const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 const read = (p) => readFileSync(path.join(ROOT, p), "utf8");
 
 describe("stripBase", () => {
-  const base = "/LinkedIn_Github_Boot/";
+  const base = "/LinkedIn_Github_Bot/";
 
   it("strips the Pages prefix", () => {
-    expect(stripBase("/LinkedIn_Github_Boot/guide", base)).toBe("/guide");
-    expect(stripBase("/LinkedIn_Github_Boot/assets/app.js", base)).toBe("/assets/app.js");
+    expect(stripBase("/LinkedIn_Github_Bot/guide", base)).toBe("/guide");
+    expect(stripBase("/LinkedIn_Github_Bot/assets/app.js", base)).toBe("/assets/app.js");
   });
 
   it("handles the bare base path", () => {
-    expect(stripBase("/LinkedIn_Github_Boot", base)).toBe("/");
+    expect(stripBase("/LinkedIn_Github_Bot", base)).toBe("/");
   });
 
   it("leaves root-served paths untouched, for the local server", () => {
@@ -25,9 +25,7 @@ describe("stripBase", () => {
   });
 
   it("does not strip a lookalike prefix", () => {
-    expect(stripBase("/LinkedIn_Github_Boot-other/x", base)).toBe(
-      "/LinkedIn_Github_Boot-other/x"
-    );
+    expect(stripBase("/LinkedIn_Github_Boot/x", base)).toBe("/LinkedIn_Github_Boot/x");
   });
 
   it("is a no-op when served from a domain root", () => {
@@ -36,8 +34,21 @@ describe("stripBase", () => {
 });
 
 describe("web base configuration", () => {
+  /** Pages serves at /<repo-name>/, and the path is case-sensitive. */
+  function expectedBaseFromPackage() {
+    const pkg = JSON.parse(read("package.json"));
+    const repo = pkg.repository?.url ?? "";
+    const name = repo.replace(/\.git$/, "").split("/").pop();
+    return `/${name}/`;
+  }
+
   it("defaults to the repository's Pages path", () => {
-    expect(WEB_BASE).toBe("/LinkedIn_Github_Boot/");
+    expect(WEB_BASE).toBe("/LinkedIn_Github_Bot/");
+  });
+
+  it("matches the repository name exactly, casing included", () => {
+    // A single wrong capital letter makes every asset 404 on Pages.
+    expect(WEB_BASE).toBe(expectedBaseFromPackage());
   });
 
   it("keeps the vite build and the server on the same value", () => {
