@@ -40,7 +40,8 @@ function run(cmd, args = [], { input } = {}) {
   });
 }
 
-/** Values are never returned or logged — only their names. */export function planSecrets(env = process.env, names = [...REQUIRED_SECRETS, ...OPTIONAL_SECRETS]) {
+/** Values are never returned or logged — only their names. */
+export function planSecrets(env = process.env, names = [...REQUIRED_SECRETS, ...OPTIONAL_SECRETS]) {
   const set = [];
   const missing = [];
   const skipped = [];

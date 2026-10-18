@@ -1,5 +1,8 @@
-import { describe, it, expect, afterEach, vi } from "vitest";
+import { describe, it, expect, afterEach, beforeEach, vi } from "vitest";
 import { readFileSync } from "node:fs";
+import { mkdtempSync, mkdirSync, writeFileSync, rmSync } from "node:fs";
+import { tmpdir } from "node:os";
+import path from "node:path";
 import { createSetupServer } from "../scripts/setupServer.js";
 
 const servers = [];
@@ -8,11 +11,17 @@ async function start(options = {}) {
   const s = createSetupServer({ port: 0, ...options });
   const url = await s.listen();
   servers.push(s);
-  return { ...s, url, get: (p) => fetch(`${url}${p}`), post: (p, body) => fetch(`${url}${p}`, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify(body),
-  }) };
+  return {
+    ...s,
+    url,
+    get: (p, init) => fetch(`${url}${p}`, init),
+    post: (p, body) =>
+      fetch(`${url}${p}`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(body),
+      }),
+  };
 }
 
 afterEach(async () => {
@@ -34,6 +43,34 @@ const FULL_ENV = {
 };
 
 describe("GET /api/health", () => {
+  it("reports the GitHub CLI state, since saving secrets needs it", async () => {
+    const ghCheckImpl = vi.fn().mockResolvedValue({ installed: true, authenticated: true });
+    const s = await start({ ghCheckImpl });
+
+    const body = await (await s.get("/api/health")).json();
+
+    expect(ghCheckImpl).toHaveBeenCalled();
+    expect(body.gh).toEqual({ installed: true, authenticated: true });
+  });
+
+  it("distinguishes missing from signed-out", async () => {
+    const s = await start({
+      ghCheckImpl: async () => ({ installed: true, authenticated: false }),
+    });
+
+    expect((await (await s.get("/api/health")).json()).gh.authenticated).toBe(false);
+  });
+
+  it("does not report ok overall when health is fine but gh is absent", async () => {
+    const s = await start({
+      ghCheckImpl: async () => ({ installed: false, authenticated: false }),
+    });
+
+    const body = await (await s.get("/api/health")).json();
+    expect(body.gh.installed).toBe(false);
+    expect(body.ok).toBe(true); // the server itself is healthy
+  });
+
   it("reports ok, the node version and missing env names", async () => {
     const s = await start();
     const res = await s.get("/api/health");
@@ -111,6 +148,186 @@ describe("POST /api/secrets", () => {
     const text = await (await s.post("/api/secrets", { apply: true })).text();
     expect(text).not.toContain("gh-secret-value");
     expect(text).not.toContain("li-secret-value");
+  });
+});
+
+describe("POST /api/dry-run", () => {
+  it("returns what the real bot printed", async () => {
+    const dryRunImpl = vi
+      .fn()
+      .mockResolvedValue({ stdout: "a generated post", stderr: "", code: 0 });
+
+    const s = await start({ dryRunImpl });
+    const res = await s.post("/api/dry-run", {});
+    const body = await res.json();
+
+    expect(dryRunImpl).toHaveBeenCalledOnce();
+    expect(body.ok).toBe(true);
+    expect(body.stdout).toContain("a generated post");
+  });
+
+  it("reports a failing run rather than pretending it worked", async () => {
+    const dryRunImpl = vi
+      .fn()
+      .mockResolvedValue({ stdout: "", stderr: "Missing env variables", code: 1 });
+
+    const s = await start({ dryRunImpl });
+    const res = await s.post("/api/dry-run", {});
+    const body = await res.json();
+
+    expect(body.ok).toBe(false);
+    expect(body.exitCode).toBe(1);
+    expect(body.stderr).toContain("Missing env variables");
+  });
+});
+
+describe("listen", () => {
+  it("explains a port clash instead of dying silently", async () => {
+    const first = createSetupServer({ port: 0 });
+    const port = new URL(await first.listen()).port;
+
+    const second = createSetupServer({ port: Number(port) });
+    await expect(second.listen()).rejects.toThrow(/already in use/);
+
+    await first.close();
+  });
+
+  it("allows two servers on different ports", async () => {
+    const a = createSetupServer({ port: 0 });
+    const b = createSetupServer({ port: 0 });
+    const [urlA, urlB] = [await a.listen(), await b.listen()];
+
+    expect(urlA).not.toBe(urlB);
+    await a.close();
+    await b.close();
+  });
+});
+
+describe("GET /docs", () => {
+  let docsDir;
+
+  beforeEach(() => {
+    docsDir = mkdtempSync(path.join(tmpdir(), "docs-"));
+    writeFileSync(path.join(docsDir, "GUIDE.md"), "# Guide\n\nSome docs.");
+    writeFileSync(path.join(docsDir, "img.png"), "notreallyapng");
+  });
+
+  afterEach(() => rmSync(docsDir, { recursive: true, force: true }));
+
+  it("serves a markdown guide", async () => {
+    const s = await start({ docsDir });
+    const res = await s.get("/docs/GUIDE.md");
+
+    expect(res.status).toBe(200);
+    expect(res.headers.get("content-type")).toContain("text/plain");
+    expect(await res.text()).toContain("Some docs.");
+  });
+
+  it("serves images referenced by the guide", async () => {
+    const s = await start({ docsDir });
+    expect((await s.get("/docs/img.png")).status).toBe(200);
+  });
+
+  it("redirects the bare /docs path to the guide", async () => {
+    const s = await start({ docsDir });
+    const res = await s.get("/docs", { redirect: "manual" });
+
+    expect(res.status).toBe(302);
+    expect(res.headers.get("location")).toContain("LINKEDIN_SETUP.md");
+  });
+
+  it("404s a guide that does not exist", async () => {
+    const s = await start({ docsDir });
+    expect((await s.get("/docs/NOPE.md")).status).toBe(404);
+  });
+
+  it("never serves files outside docs/, whatever the path", async () => {
+    const s = await start({ docsDir });
+
+    for (const path of ["/docs/%2e%2e/.env", "/docs/../.env"]) {
+      const body = await (await s.get(path)).text();
+      expect(body).not.toContain("GROQ_API_KEY=");
+      expect(body).not.toContain("LINKEDIN_ACCESS_TOKEN=");
+    }
+  });
+
+  it("serves the real LinkedIn setup guide from this repo", async () => {
+    const s = await start();
+    const res = await s.get("/docs/LINKEDIN_SETUP.md");
+
+    expect(res.status).toBe(200);
+    expect(await res.text()).toContain("LinkedIn");
+  });
+});
+
+describe("static serving", () => {
+  let dir;
+
+  beforeEach(() => {
+    dir = mkdtempSync(path.join(tmpdir(), "webdist-"));
+    mkdirSync(path.join(dir, "assets"), { recursive: true });
+    writeFileSync(path.join(dir, "index.html"), "<!doctype html><title>wizard</title>");
+    writeFileSync(path.join(dir, "assets", "app.js"), "console.log(1)");
+  });
+
+  afterEach(() => rmSync(dir, { recursive: true, force: true }));
+
+  it("serves the built wizard at the root", async () => {
+    const s = await start({ webDir: dir });
+    const res = await s.get("/");
+
+    expect(res.status).toBe(200);
+    expect(res.headers.get("content-type")).toContain("text/html");
+    expect(await res.text()).toContain("wizard");
+  });
+
+  it("serves hashed assets with the right content type", async () => {
+    const s = await start({ webDir: dir });
+    const res = await s.get("/assets/app.js");
+
+    expect(res.status).toBe(200);
+    expect(res.headers.get("content-type")).toContain("text/javascript");
+  });
+
+  it("never serves files outside dist, whatever the path", async () => {
+    // The URL parser collapses %2e%2e before the request reaches us, so the
+    // status is not the point — leaking the file's contents is.
+    const s = await start({ webDir: dir });
+
+    for (const path of [
+      "/assets/%2e%2e/%2e%2e/setupServer.js",
+      "/assets/../../setupServer.js",
+      "/%2e%2e/scripts/consts.js",
+    ]) {
+      const body = await (await s.get(path)).text();
+      expect(body).not.toContain("dotenv/config");
+    }
+  });
+
+  it("serves the app shell for client-side routes", async () => {
+    const s = await start({ webDir: dir });
+
+    // These are React Router paths, not files on disk.
+    for (const route of ["/guide", "/getting-started"]) {
+      const res = await s.get(route);
+      expect(res.status).toBe(200);
+      expect(await res.text()).toContain("wizard");
+    }
+  });
+
+  it("404s a missing asset rather than silently returning HTML", async () => {
+    const s = await start({ webDir: dir });
+    const res = await s.get("/assets/gone.js");
+
+    expect(res.status).toBe(404);
+    expect(await res.text()).not.toContain("wizard");
+  });
+
+  it("keeps serving the API when no build is present", async () => {
+    const s = await start({ webDir: path.join(dir, "nope") });
+
+    expect((await s.get("/")).status).toBe(404);
+    expect((await s.get("/api/health")).status).toBe(200);
   });
 });
 
@@ -224,7 +441,7 @@ describe("LinkedIn auth routes", () => {
     expect((await res.json()).error).toContain("User said no");
   });
 
-  it("exchanges the code and returns the tokens", async () => {
+  it("redirects back to the app instead of putting tokens in the URL", async () => {
     const linkedin = {
       authorizeUrl: vi.fn().mockResolvedValue({ url: "https://linkedin.com/oauth" }),
       exchange: vi.fn().mockResolvedValue({ accessToken: "li-token", authorUrn: "urn:li:person:abc" }),
@@ -232,14 +449,37 @@ describe("LinkedIn auth routes", () => {
     const s = await start({ linkedin });
 
     const { state } = await (await s.get("/api/auth/linkedin/start")).json();
-    const res = await s.get(`/api/auth/linkedin/callback?code=the-code&state=${state}`);
-    const body = await res.json();
-
-    expect(res.status).toBe(200);
-    expect(body.accessToken).toBe("li-token");
-    expect(linkedin.exchange).toHaveBeenCalledWith("the-code", {
-      redirectUri: process.env.LINKEDIN_REDIRECT_URI,
+    const res = await s.get(`/api/auth/linkedin/callback?code=the-code&state=${state}`, {
+      redirect: "manual",
     });
+
+    expect(res.status).toBe(302);
+    expect(res.headers.get("location")).toBe("/#linkedin-connected");
+    // The tokens must not appear in the redirect URL.
+    expect(res.headers.get("location")).not.toContain("li-token");
+  });
+
+  it("hands the tokens to the wizard exactly once", async () => {
+    const linkedin = {
+      authorizeUrl: vi.fn().mockResolvedValue({ url: "https://linkedin.com/oauth" }),
+      exchange: vi.fn().mockResolvedValue({ accessToken: "li-token", authorUrn: "urn:li:person:abc" }),
+    };
+    const s = await start({ linkedin });
+
+    const { state } = await (await s.get("/api/auth/linkedin/start")).json();
+    await s.get(`/api/auth/linkedin/callback?code=the-code&state=${state}`);
+
+    const first = await s.get(`/api/auth/linkedin/result?state=${state}`);
+    expect(first.status).toBe(200);
+    expect((await first.json()).accessToken).toBe("li-token");
+
+    const second = await s.get(`/api/auth/linkedin/result?state=${state}`);
+    expect(second.status).toBe(404);
+  });
+
+  it("404s when the wizard asks for a result that does not exist", async () => {
+    const s = await start();
+    expect((await s.get("/api/auth/linkedin/result?state=nope")).status).toBe(404);
   });
 
   it("returns 502 when the exchange fails", async () => {
@@ -264,7 +504,9 @@ describe("LinkedIn auth routes", () => {
     const s = await start({ linkedin });
 
     const { state } = await (await s.get("/api/auth/linkedin/start")).json();
-    expect((await s.get(`/api/auth/linkedin/callback?code=a&state=${state}`)).status).toBe(200);
+    expect(
+      (await s.get(`/api/auth/linkedin/callback?code=a&state=${state}`, { redirect: "manual" })).status
+    ).toBe(302);
 
     // A replayed callback must not mint another token.
     linkedin.exchange.mockClear();

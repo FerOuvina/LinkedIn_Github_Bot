@@ -75,6 +75,24 @@ secrets. If your app *was* issued a refresh token you can instead run
 Run `npm run preflight` whenever a scheduled run starts failing — it names the
 broken credential.
 
+### Set up in the browser (optional)
+
+```bash
+npm run setup
+```
+
+Opens a local wizard on <http://127.0.0.1:4319> that checks your Node version,
+collects the credentials, completes the LinkedIn OAuth flow, previews exactly
+which secrets will be written, and can save them to **both** GitHub Actions
+secrets and your local `.env`. It also runs the credential checks and generates
+a test post without publishing anything.
+
+The wizard is an accelerator, not a requirement — every step has a CLI
+equivalent, and the bot never depends on `web/`. If you'd rather not build the
+UI, skip straight to the commands above.
+
+The server binds to `127.0.0.1` only, since it hands out LinkedIn tokens.
+
 ### Local run
 
 ```bash
@@ -109,7 +127,12 @@ scripts/
   mainScript.js     orchestration
   github.js         repo scanning, caching, concurrency
   http.js           timeout + retry wrapper
+  llm.js            Groq request shape, shared by the bot and preflight
   commitScoring.js  score rules and filtering
+  preflight.js      credential checks
+  syncSecrets.js    .env -> GitHub secrets
+  setupServer.js    local API + serves the wizard
+web/                optional React setup wizard (own package.json)
 ```
 
 ## Security
