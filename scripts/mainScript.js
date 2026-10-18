@@ -5,6 +5,7 @@ import {
   LINKEDIN_HEADERS,
   LINKEDIN_AUTHOR,
   HUB_USER,
+  HF_MODEL,
 } from "./consts.js";
 import { scoreCommits, rankCommits } from "./commitScoring.js";
 import {
@@ -23,7 +24,7 @@ const since = getSinceDate(24, now);
 // Helper: call Hugging Face text-generation API
 async function generateSummary(prompt) {
   const url = "https://router.huggingface.co/v1/chat/completions";
-  const model = "jialinyyzz/humanizer";
+  const model = HF_MODEL;
 
   const payload = {
     model,

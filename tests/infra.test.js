@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { readFileSync, existsSync } from "node:fs";
+import { readFileSync, existsSync, readdirSync } from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 
@@ -121,6 +121,33 @@ describe("external scripts are pinned", () => {
   it.each(urls)("pins %s to an exact version", (url) => {
     const withoutHost = url.replace(/^https:\/\/[^/]+\//, "");
     expect(withoutHost).toMatch(/@[\w.]+/);
+  });
+});
+
+describe("environment loading", () => {
+  const scriptDir = path.join(ROOT, "scripts");
+  const scripts = readdirSync(scriptDir).filter((f) => f.endsWith(".js"));
+
+  it("finds scripts to check", () => {
+    expect(scripts.length).toBeGreaterThan(0);
+  });
+
+  // A script that reads process.env without loading .env sees nothing, and the
+  // symptom ("Missing X") looks like a config mistake rather than a code bug.
+  it.each(scripts)("scripts/%s loads dotenv if it reads process.env", (file) => {
+    const text = read(path.join("scripts", file));
+    if (!/process\.env/.test(text)) return;
+
+    const loadsDotenv =
+      /import\s+["']dotenv\/config["']/.test(text) || /from\s+["']\.\/consts\.js["']/.test(text);
+
+    expect(loadsDotenv).toBe(true);
+  });
+
+  it("the linkedin auth script reads its client id from the environment", () => {
+    const text = read("scripts/linkedinAuth.js");
+    expect(text).toContain("process.env.LINKEDIN_CLIENT_ID");
+    expect(/import\s+["']dotenv\/config["']/.test(text)).toBe(true);
   });
 });
 
