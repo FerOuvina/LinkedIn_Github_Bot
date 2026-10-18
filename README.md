@@ -1,77 +1,83 @@
-### GitHub → LinkedIn Automation
+# GitHub → LinkedIn Bot
 
-Automatically turn your GitHub activity into polished LinkedIn posts using GitHub Actions and AI.
+Turns your daily GitHub commits into a LinkedIn post, on a schedule.
 
-This project connects your GitHub workflow with LinkedIn to generate daily, human-readable updates based on your recent commits — ideal for maintaining a consistent LinkedIn presence without manual effort.
+Each morning the bot scans your most active repos, scores commits by how
+significant they look, asks an LLM to turn the keepers into a short post, and
+publishes it to LinkedIn. Nothing to write by hand.
 
-## 🚀 What it does
+## How it works
 
-- Runs automatically on a daily schedule using GitHub Actions.
+1. Lists your repos and fetches each one's commits from the last 24 hours.
+2. Ranks repos by commit count and keeps the top 3.
+3. Scores each commit message — `feat:` +5, `fix:` +4, `chore/docs/ci` −2,
+   and so on — and drops anything scoring below 1.
+4. Sends the survivors to an LLM with a prompt asking for a LinkedIn post.
+5. Appends your GitHub and portfolio links, then publishes it.
 
-- Analyzes recent activity across your most active repositories.
+Only one fetch per repo, requests run concurrently with a 10s timeout and
+bounded retries, and the publish is never retried (a retry could post twice).
 
-- Extracts commit messages and identifies meaningful changes.
+## Setup
 
-- Uses AI (via Hugging Face) to generate clear, professional LinkedIn posts.
+You need Node 24 (see `.nvmrc`) and a `.env` file with:
 
-- Publishes formatted updates directly to LinkedIn.
+| Variable | What it's for |
+| --- | --- |
+| `HUB_USER` | Your GitHub username |
+| `GITHUB_TOKEN` | Any GitHub token with public repo read access |
+| `LINKEDIN_ACCESS_TOKEN` | LinkedIn OAuth token that permits posting (`ugcPosts`) |
+| `LINKEDIN_AUTHOR_URN` | Your `urn:li:person:...` identifier |
+| `HUGGINGFACE_API_KEY` | Key for the LLM |
 
-## 🎯 Why this exists
+Two throwaway helper scripts — `scripts/getLinkedInToken.js` and
+`scripts/getLinkedInUser.js` — walk through the LinkedIn OAuth flow and print
+your author URN. They're gitignored; delete them once you have the values.
 
-Developers build and ship things every day, but that work often stays invisible outside GitHub.
+### Local run
 
-This project was created to:
+```bash
+npm install
+npm start              # publishes
+npm start -- --dry-run # prints the post instead of publishing
+```
 
-- Bridge the gap between technical work and professional visibility.
+The script exits non-zero if anything fails, so a broken run is obvious rather
+than silent.
 
-- Encourage consistent LinkedIn activity without interrupting the development flow.
+### GitHub Actions
 
-- Explore automation, APIs, OAuth flows, and AI-assisted content generation in a real-world scenario.
+`.github/workflows/linkedin-post.yml` runs this daily at 18:00 UTC and can
+also be triggered manually. Add the five variables above as repository
+secrets and you're done.
 
-- Serve as a practical example of integrating multiple platforms into a single automated workflow.
+## Tests
 
-- It’s both a useful personal tool and a learning-focused project that demonstrates backend automation, API integration, and production-ready practices.
+```bash
+npm test
+```
 
-## ✨ Sample LinkedIn Post Output
+91 tests covering commit scoring, the GitHub and HTTP layers, the CLI exit
+codes, and the workflow configuration.
 
-🚀 Daily Dev Update
+## Project layout
 
-Today I worked on improving authentication handling and refactoring API logic across multiple repositories.
+```
+scripts/
+  dailySummary.js   CLI entry point; owns the exit code
+  mainScript.js     orchestration
+  github.js         repo scanning, caching, concurrency
+  http.js           timeout + retry wrapper
+  commitScoring.js  score rules and filtering
+```
 
-- Enhanced OAuth flow and token validation.
-- Cleaned up error handling and improved logging.
-- Minor performance optimizations and code structure improvements.
+## Security
 
-Always iterating and learning. 💻⚙️
+Credentials come from environment variables and GitHub Secrets — nothing is
+committed. The scripts that handle secrets are gitignored, but they contain
+plaintext values on disk, so don't commit them.
 
-(This post was automated using the LinkedIn API, if you want to learn more about it, check out the repository on Github: https://github.com/FerOuvina/LinkedIn_Github_Bot)
+## Ideas
 
-## 🔐 Security & Authentication
-
-- OAuth 2.0 for LinkedIn authentication.
-
-- GitHub Secrets for securely storing tokens and API keys.
-
-- No credentials are hard-coded or exposed in the repository.
-
-## 🛠 Tech Stack
-
-- Node.js – automation logic and API handling.
-
-- GitHub Actions – scheduling and execution.
-
-- GitHub REST API – repository and commit data.
-
-- LinkedIn REST API – post publishing.
-
-- Hugging Face – AI-powered text summarization.
-
-## 🔮 Future ideas
-
-While this project currently runs as a GitHub Action, it is designed with future expansion in mind.
-
-Potential next steps include:
-
-- Converting it into a web application where users can connect their own GitHub and LinkedIn accounts.
-
-- Adding customization options for post tone, frequency, and formatting.
+- Let people connect their own GitHub and LinkedIn accounts via a small web app.
+- Make tone, length, and posting frequency configurable.
