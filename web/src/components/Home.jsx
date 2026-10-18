@@ -1,290 +1,285 @@
-import { useEffect, useState } from "react";
 import { Link } from "wouter";
 import { sitePath } from "../lib/api.js";
 
-export default function GettingStarted() {
-  const [darkMode, setDarkMode] = useState(false);
+const TICKER = [
+  "commits in",
+  "posts out",
+  "no copy-paste",
+  "runs daily",
+  "open source",
+  "your keys stay yours",
+  "scheduled at 18:00 UTC",
+];
 
-  // Initialize theme
-  useEffect(() => {
-    const storedTheme = localStorage.getItem("theme");
-    const prefersDark = window.matchMedia(
-      "(prefers-color-scheme: dark)"
-    ).matches;
+const REPO = "https://github.com/FerOuvina/LinkedIn_Github_Bot";
 
-    if (storedTheme === "dark" || (!storedTheme && prefersDark)) {
-      document.documentElement.classList.add("dark");
-      // eslint-disable-next-line react-hooks/set-state-in-effect
-      setDarkMode(true);
-    }
-  }, []);
+const CARDS = [
+  {
+    kicker: "01 / pipeline",
+    title: "How it works",
+    icon: "hub",
+    items: [
+      ["history", "Scans your repos for the last 24 hours of commits"],
+      ["filter_alt", "Drops changelogs, merges and chore noise"],
+      ["auto_awesome", "Turns what is left into a post with an LLM"],
+      ["send", "Publishes to LinkedIn on a schedule"],
+    ],
+  },
+  {
+    kicker: "02 / privacy",
+    title: "Your data, your control",
+    icon: "shield",
+    items: [
+      ["dns", "Runs on your machine, not on a server"],
+      ["key", "Tokens go straight to the APIs, nowhere else"],
+      ["visibility", "Credentials live in .env or GitHub secrets"],
+      ["block", "No accounts, no tracking, no telemetry"],
+    ],
+  },
+  {
+    kicker: "03 / who",
+    title: "Who it's for",
+    icon: "groups",
+    items: [
+      ["code", "Developers shipping things quietly"],
+      ["commit", "Open source maintainers"],
+      ["record_voice_over", "Developer advocates building a profile"],
+      ["person", "Anyone tired of writing updates by hand"],
+    ],
+  },
+  {
+    kicker: "04 / notes",
+    title: "Good to know",
+    icon: "warning",
+    items: [
+      ["key_vertical", "You bring your own API keys"],
+      ["schedule", "LinkedIn tokens expire about every 60 days"],
+      ["toll", "Groq models have rate limits"],
+      ["deployed_code", "This site is the docs, not the bot"],
+    ],
+  },
+];
 
-  // Toggle handler
-  const toggleDarkMode = () => {
-    const isDark = !darkMode;
-    setDarkMode(isDark);
-
-    document.documentElement.classList.toggle("dark", isDark);
-    localStorage.setItem("theme", isDark ? "dark" : "light");
-  };
-
+function Card({ kicker, title, icon, items }) {
   return (
-    <div className="relative flex min-h-screen w-full flex-col overflow-x-hidden bg-background-light dark:bg-background-dark font-display text-slate-900 dark:text-white antialiased selection:bg-primary/30 selection:text-primary">
-      {/* Header */}
-      <header className="fixed top-0 z-50 w-full border-b border-gray-200 dark:border-border-dark bg-background-light/80 dark:bg-background-dark/80 backdrop-blur-md">
+    <div className="card">
+      <div className="mb-5 flex items-start justify-between">
+        <span className="material-symbols-outlined text-[28px] text-primary">
+          {icon}
+        </span>
+        <span className="ff-kicker">{kicker}</span>
+      </div>
+
+      <h3 className="ff-display mb-5 text-xl text-bone">{title}</h3>
+
+      <ul className="space-y-3">
+        {items.map(([itemIcon, label]) => (
+          <li key={label} className="flex items-start gap-3 text-sm text-ash">
+            <span className="material-symbols-outlined text-[18px] text-cyan">
+              {itemIcon}
+            </span>
+            <span>{label}</span>
+          </li>
+        ))}
+      </ul>
+    </div>
+  );
+}
+
+export default function Home() {
+  return (
+    <div className="scanlines grid-bg min-h-screen bg-void font-body text-bone">
+      {/* ── Header ─────────────────────────────────────────────── */}
+      <header className="sticky top-0 z-50 border-b-2 border-edge bg-void/90 backdrop-blur-md">
         <div className="mx-auto flex h-16 max-w-7xl items-center justify-between px-4 sm:px-6 lg:px-8">
-          <div className="flex items-center gap-2">
-            <div className="flex items-center justify-center rounded-lg bg-primary/10 p-2 text-primary">
-              <span className="material-symbols-outlined text-[20px]">
-                rocket_launch
-              </span>
-            </div>
-            <a
-              href="https://github.com/FerOuvina/LinkedIn_Github_Bot"
-              className="text-lg font-bold tracking-tight"
-              target="_blank"
-            >
-              Github-LinkedIn Automation
-            </a>
-          </div>
+          <a
+            href={REPO}
+            target="_blank"
+            rel="noreferrer"
+            className="flex items-center gap-2"
+          >
+            <span className="material-symbols-outlined text-[20px] text-primary">
+              rocket_launch
+            </span>
+            <span className="ff-mono text-sm">
+              github<span className="text-primary">→</span>linkedin
+            </span>
+          </a>
 
           <div className="flex items-center gap-3">
-            {/* Dark mode toggle */}
-            <button
-              onClick={toggleDarkMode}
-              className="flex h-9 w-9 items-center justify-center rounded-lg border border-gray-200 dark:border-border-dark bg-transparent hover:bg-gray-100 dark:hover:bg-card-dark transition-colors"
-              aria-label="Toggle dark mode"
+            <a
+              href={REPO}
+              target="_blank"
+              rel="noreferrer"
+              className="btn btn-ghost hidden px-4 py-2 sm:inline-flex"
             >
-              <span className="material-symbols-outlined text-[20px]">
-                {darkMode ? "light_mode" : "dark_mode"}
-              </span>
-            </button>
-
-            <button className="hidden sm:flex h-9 items-center justify-center rounded-lg border border-gray-200 dark:border-border-dark bg-transparent px-4 text-sm font-medium text-slate-600 dark:text-slate-300 hover:bg-gray-100 dark:hover:bg-card-dark transition-colors">
-              <span className="mr-2 material-symbols-outlined text-[18px]">
-                code
-              </span>
-              <a
-                href="https://github.com/FerOuvina/LinkedIn_Github_Bot"
-                target="_blank"
-              >
-                GitHub Repo
-              </a>
-            </button>
-
-            <Link
-              href="/getting-started"
-              className="flex h-9 items-center justify-center rounded-lg bg-primary px-4 text-sm font-bold text-white shadow-lg shadow-primary/20 hover:bg-blue-600 transition-all hover:scale-105 active:scale-95"
-            >
-              Get Started
+              <span className="material-symbols-outlined text-[18px]">code</span>
+              source
+            </a>
+            <Link href="/getting-started" className="btn btn-primary px-4 py-2">
+              get started
             </Link>
           </div>
         </div>
       </header>
 
-      {/* Main */}
-      <main className="flex-1">
-        <div className="mx-auto flex w-full max-w-7xl flex-col px-4 sm:px-6 lg:px-8 py-12 lg:py-20">
-          {/* Hero */}
-          <div className="mb-16 flex flex-col items-center text-center gap-6">
-            <div className="inline-flex items-center rounded-full border border-primary/20 bg-primary/10 px-3 py-1 text-sm font-medium text-primary">
-              <span className="mr-2">✨</span> v1.0 is now live
-            </div>
+      {/* ── Ticker ─────────────────────────────────────────────── */}
+      <div className="overflow-hidden border-b-2 border-edge bg-primary py-2">
+        <div className="flex w-max animate-marquee">
+          {[...TICKER, ...TICKER].map((item, i) => (
+            <span
+              key={`${item}-${i}`}
+              className="ff-mono flex items-center whitespace-nowrap px-6 text-[11px] text-void"
+            >
+              {item}
+              <span className="ml-6 text-void/50">◆</span>
+            </span>
+          ))}
+        </div>
+      </div>
 
-            <h1 className="text-4xl font-black tracking-tight sm:text-5xl lg:text-6xl max-w-4xl leading-[1.1]">
-              GitHub <span className="text-primary">→</span> LinkedIn
-              <br />
-              Automation Dashboard
-            </h1>
+      <main className="mx-auto w-full max-w-7xl px-4 sm:px-6 lg:px-8">
+        {/* ── Hero ─────────────────────────────────────────────── */}
+        <section className="flex flex-col items-center gap-8 py-20 text-center lg:py-28">
+          <span className="ff-badge">
+            <span className="size-1.5 animate-blink bg-primary" />
+            v1.0 // live
+          </span>
 
-            <p className="max-w-2xl text-lg text-slate-600 dark:text-slate-400">
-              Turn your commits into content effortlessly. Built for developers
-              who want to grow their LinkedIn Profile without the hassle.
-              Privacy-focused & Open Source.
-            </p>
+          <h1 className="ff-display max-w-5xl text-5xl sm:text-7xl lg:text-8xl">
+            <span
+              className="glitch"
+              data-text="commits in"
+              tabIndex={0}
+            >
+              commits in
+            </span>
+            <br />
+            <span
+              className="glitch text-primary"
+              data-text="posts out"
+              tabIndex={0}
+            >
+              posts out
+            </span>
+          </h1>
 
-            <div className="mt-4 flex flex-wrap justify-center gap-4">
-              {["No credit card required", "Open Source"].map((text) => (
-                <div
-                  key={text}
-                  className="flex items-center gap-2 text-sm text-slate-500"
-                >
-                  <span className="material-symbols-outlined text-[18px] text-primary">
-                    check_circle
-                  </span>
-                  <span>{text}</span>
-                </div>
-              ))}
-            </div>
+          <p className="max-w-2xl text-lg text-ash">
+            Your GitHub activity becomes a LinkedIn post every day, without you
+            writing a single update. Open source, runs on your machine, keys stay
+            yours.
+          </p>
+
+          <div className="flex flex-wrap justify-center gap-4">
+            <Link href="/getting-started" className="btn btn-primary">
+              start building
+              <span className="material-symbols-outlined text-[18px]">
+                arrow_forward
+              </span>
+            </Link>
+            <a
+              href={REPO}
+              target="_blank"
+              rel="noreferrer"
+              className="btn btn-ghost"
+            >
+              <span className="material-symbols-outlined text-[18px]">code</span>
+              view source
+            </a>
           </div>
 
-          {/* Feature Grid */}
-          <div className="grid grid-cols-1 gap-6 md:grid-cols-2 xl:gap-8">
-            {/* Card helper */}
+          <div className="grid w-full max-w-2xl grid-cols-3 gap-px border-2 border-edge bg-edge">
             {[
-              {
-                title: "How it works",
-                desc: "A seamless pipeline from your local environment to your professional network.",
-                icon: "hub",
-                color: "primary",
-                items: [
-                  ["login", "Connect your GitHub account securely"],
-                  ["rule_folder", "Select specific repositories to track"],
-                  ["auto_awesome", "Generate engaging posts with AI"],
-                  ["schedule_send", "Schedule directly to LinkedIn"],
-                ],
-              },
-              {
-                title: "Your data, your control",
-                desc: "We prioritize privacy above all else. Your code stays yours.",
-                icon: "security",
-                color: "emerald",
-                items: [
-                  ["dns", "Local storage first architecture"],
-                  ["visibility", "100% Open source transparency"],
-                  ["block", "Absolutely no hidden tracking"],
-                  ["key", "Your API keys never leave your device"],
-                ],
-              },
-              {
-                title: "Who this is for",
-                desc: "Designed for technical builders growing their audience.",
-                icon: "group",
-                color: "purple",
-                items: [
-                  ["code_off", "Coders who want to stay relevant"],
-                  ["commit", "Open Source Maintainers"],
-                  ["record_voice_over", "Developer Advocates"],
-                ],
-              },
-              {
-                title: "Important notes",
-                desc: "A few things to keep in mind before you start.",
-                icon: "warning",
-                color: "amber",
-                items: [
-                  ["api", "Standard LinkedIn API rate limits apply"],
-                  ["key_vertical", "Requires your own Huggin Face API key"],
-                  ["deployed_code", "Features may change"],
-                ],
-              },
-            ].map((card) => (
-              <div
-                key={card.title}
-                className="group relative overflow-hidden rounded-xl border border-gray-200 dark:border-border-dark bg-white dark:bg-card-dark p-8 shadow-sm transition-all hover:border-primary/50 hover:shadow-md"
-              >
-                <div className="mb-5 flex h-12 w-12 items-center justify-center rounded-lg bg-slate-100 dark:bg-slate-800">
-                  <span className="material-symbols-outlined text-[28px]">
-                    {card.icon}
-                  </span>
-                </div>
-
-                <h3 className="mb-3 text-xl font-bold">{card.title}</h3>
-                <p className="mb-6 text-slate-600 dark:text-slate-400">
-                  {card.desc}
-                </p>
-
-                <ul className="space-y-3">
-                  {card.items.map(([icon, label]) => (
-                    <li
-                      key={label}
-                      className="flex items-start gap-3 text-sm text-slate-600 dark:text-slate-300"
-                    >
-                      <span className="material-symbols-outlined text-[20px] text-primary mt-0.5">
-                        {icon}
-                      </span>
-                      {label}
-                    </li>
-                  ))}
-                </ul>
+              ["6", "steps to set up"],
+              ["0", "manual updates"],
+              ["~2", "min per renewal"],
+            ].map(([value, label]) => (
+              <div key={label} className="bg-panel px-4 py-6">
+                <p className="ff-display text-3xl text-primary">{value}</p>
+                <p className="ff-mono mt-1 text-[10px] text-ash">{label}</p>
               </div>
             ))}
           </div>
+        </section>
 
-          {/* CTA */}
-          <div className="mt-20 overflow-hidden rounded-2xl bg-gradient-to-br from-[#111827] to-[#1e293b] relative px-6 py-16 sm:px-12 sm:py-20 text-center shadow-2xl">
-            <div
-              className="absolute inset-0 opacity-20"
-              style={{
-                backgroundImage:
-                  "radial-gradient(#3b82f6 1px, transparent 1px)",
-                backgroundSize: "32px 32px",
-              }}
-            />
-            <div className="relative z-10 flex flex-col items-center gap-6">
-              <h2 className="text-3xl text-white font-black sm:text-4xl lg:text-5xl max-w-3xl">
-                Ready to automate your LinkedIn posts?
-              </h2>
-              <p className="max-w-xl text-lg text-slate-300">
-                Start generating engaging posts from your codebase today.
-              </p>
+        <div className="rule" />
 
-              <div className="mt-4 flex w-full flex-col items-center gap-4 sm:flex-row sm:justify-center">
-                <Link
-                  href="/getting-started"
-                  className="flex h-12 w-full sm:w-auto items-center justify-center rounded-lg bg-primary px-6 text-base font-bold text-white hover:bg-blue-600 transition-all"
-                >
-                  Continue{" "}
-                </Link>
-                <button className="flex h-12 w-full sm:w-auto items-center justify-center rounded-lg border border-slate-600 px-6 text-base font-bold text-white hover:bg-white/5 transition-all">
-                  <span className="material-symbols-outlined mr-2 text-[20px]">
-                    code
-                  </span>
-                  <a
-                    href="https://github.com/FerOuvina/LinkedIn_Github_Bot"
-                    target="_blank"
-                  >
-                    View on GitHub
-                  </a>
-                </button>
-              </div>
+        {/* ── Cards ────────────────────────────────────────────── */}
+        <section className="grid grid-cols-1 gap-6 py-16 md:grid-cols-2">
+          {CARDS.map((card) => (
+            <Card key={card.title} {...card} />
+          ))}
+        </section>
+
+        {/* ── CTA ──────────────────────────────────────────────── */}
+        <section className="relative mb-20 overflow-hidden border-2 border-primary bg-panel px-6 py-16 text-center shadow-hard sm:px-12">
+          <div className="absolute inset-0 grid-bg opacity-40" />
+          <div className="relative flex flex-col items-center gap-6">
+            <span className="ff-kicker">ready when you are</span>
+            <h2 className="ff-display max-w-3xl text-4xl sm:text-5xl lg:text-6xl">
+              stop writing updates
+            </h2>
+            <p className="max-w-xl text-ash">
+              Clone it, run one command, and let the commits do the talking.
+            </p>
+
+            <div className="mt-2 flex w-full flex-col items-center gap-4 sm:flex-row sm:justify-center">
+              <Link href="/getting-started" className="btn btn-acid w-full sm:w-auto">
+                get started
+              </Link>
+              <a
+                href={REPO}
+                target="_blank"
+                rel="noreferrer"
+                className="btn btn-ghost w-full sm:w-auto"
+              >
+                <span className="material-symbols-outlined text-[18px]">code</span>
+                github
+              </a>
             </div>
           </div>
-        </div>
+        </section>
       </main>
 
-      {/* Footer */}
-      <footer className="border-t border-gray-200 dark:border-border-dark py-12">
-        <div className="mx-auto flex max-w-7xl flex-col items-center gap-6 px-4 sm:flex-row sm:justify-between">
-          <div className="flex items-center gap-2">
+      {/* ── Footer ─────────────────────────────────────────────── */}
+      <footer className="border-t-2 border-edge bg-void">
+        <div className="mx-auto flex max-w-7xl flex-col items-center gap-6 px-4 py-10 sm:flex-row sm:justify-between sm:px-6 lg:px-8">
+          <a
+            href={REPO}
+            target="_blank"
+            rel="noreferrer"
+            className="flex items-center gap-2"
+          >
             <span className="material-symbols-outlined text-primary">
               rocket_launch
             </span>
-            <a
-              href="https://github.com/FerOuvina/LinkedIn_Github_Bot"
-              className="text-sm font-semibold"
-              target="_blank"
-            >
-              Github-LinkedIn Automation
-            </a>
-          </div>
+            <span className="ff-mono text-xs">github→linkedin</span>
+          </a>
 
-          <div className="flex gap-6 text-sm text-slate-500">
-            <a
-              href={sitePath("/privacy-policy/")}
-              className="hover:text-primary"
-            >
-              Privacy
+          <div className="flex gap-6 text-xs">
+            <a href={sitePath("/privacy-policy/")} className="ff-mono hover:text-primary">
+              privacy
             </a>
             <a
-              href="https://github.com/FerOuvina/LinkedIn_Github_Bot/blob/main/LICENSE"
+              href={`${REPO}/blob/main/LICENSE`}
               target="_blank"
               rel="noreferrer"
-              className="hover:text-primary"
+              className="ff-mono hover:text-primary"
             >
-              Terms
+              terms
             </a>
-            <Link href="/guide" className="hover:text-primary">
-              Documentation
+            <Link href="/guide" className="ff-mono hover:text-primary">
+              docs
             </Link>
           </div>
 
           <a
             href="https://github.com/FerOuvina"
-            className="text-sm text-slate-500"
             target="_blank"
+            rel="noreferrer"
+            className="ff-mono text-[10px] text-ash hover:text-primary"
           >
-            © 2026 Fernando Ouviña.
+            © 2026 fernando ouviña
           </a>
         </div>
       </footer>

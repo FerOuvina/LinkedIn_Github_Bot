@@ -33,26 +33,26 @@ export default function Guide() {
   }, []);
 
   return (
-    <div className="min-h-screen bg-background-light font-display text-slate-900 dark:bg-background-dark dark:text-white">
-      <header className="border-b border-gray-200 dark:border-border-dark bg-white/80 dark:bg-background-dark/80 backdrop-blur-md">
+    <div className="scanlines grid-bg min-h-screen bg-void font-body text-bone">
+      <header className="sticky top-0 z-40 border-b-2 border-edge bg-void/90 backdrop-blur-md">
         <div className="mx-auto flex h-16 max-w-5xl items-center justify-between px-4 sm:px-6">
           <Link href="/" className="flex items-center gap-2 font-bold">
             <span className="material-symbols-outlined text-primary">rocket_launch</span>
-            GitHub → LinkedIn
+            <span className="ff-mono text-sm">github<span className="text-primary">→</span>linkedin</span>
           </Link>
           <div className="flex items-center gap-3">
             <a
               href={docsUrl(GUIDES[0].file)}
               target="_blank"
               rel="noreferrer"
-              className="hidden sm:flex h-9 items-center gap-2 rounded-lg border border-gray-200 px-4 text-sm font-medium dark:border-border-dark"
+              className="btn btn-ghost hidden px-4 py-2 sm:inline-flex"
             >
               <span className="material-symbols-outlined text-[18px]">description</span>
               Raw markdown
             </a>
             <Link
               href="/getting-started"
-              className="flex h-9 items-center rounded-lg bg-primary px-4 text-sm font-bold text-white shadow-lg shadow-primary/20"
+              className="btn btn-primary px-4 py-2"
             >
               Setup wizard
             </Link>
@@ -63,7 +63,7 @@ export default function Guide() {
       <HostedBanner />
 
       <main className="mx-auto flex max-w-5xl flex-col gap-8 px-4 py-10 sm:px-6 md:flex-row">        <aside className="hidden w-56 shrink-0 md:block">
-          <p className="mb-3 text-xs font-bold uppercase tracking-wider text-slate-500">
+          <p className="ff-kicker mb-3">
             On this page
           </p>
           <nav className="sticky top-24 space-y-1">
@@ -73,7 +73,7 @@ export default function Guide() {
                 <a
                   key={h.id}
                   href={`#${h.id}`}
-                  className="block rounded px-2 py-1 text-sm text-slate-600 hover:bg-slate-100 hover:text-primary dark:text-slate-400 dark:hover:bg-slate-800"
+                  className="ff-mono block border-l-2 border-transparent px-3 py-1.5 text-[11px] text-ash hover:border-primary hover:bg-primary/10 hover:text-bone"
                 >
                   {h.text}
                 </a>
@@ -82,10 +82,10 @@ export default function Guide() {
         </aside>
 
         <article className="prose-slate min-w-0 flex-1">
-          {state.loading && <p className="text-slate-500">Loading the guide…</p>}
+          {state.loading && <p className="ff-mono text-[11px] text-ash">loading_guide…</p>}
 
           {state.error && (
-            <div className="rounded-lg border border-red-300 bg-red-50 p-4 text-red-700 dark:border-red-800 dark:bg-red-950/40 dark:text-red-300">
+            <div className="panel border-crimson p-4 text-crimson">
               {state.error}
             </div>
           )}

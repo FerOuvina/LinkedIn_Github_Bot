@@ -36,16 +36,16 @@ export default function StepCredentials() {
 
   return (
     <section>
-      <p className="max-w-2xl text-lg text-slate-600 dark:text-slate-400 mb-8">
+      <p className="mb-8 max-w-2xl text-lg text-ash">
         These stay in the setup server's memory until you save them. Nothing is
         sent anywhere until the next step, and nothing is written until you
         confirm it.
       </p>
 
-      <div className="grid gap-6 max-w-2xl">
+      <div className="grid max-w-2xl gap-6">
         {FIELDS.map((field) => (
           <div key={field.name} className="flex flex-col gap-2">
-            <label className="font-semibold text-slate-800 dark:text-slate-200">
+            <label className="ff-mono text-[11px] uppercase tracking-[0.2em] text-bone">
               {field.label}
             </label>
             <input
@@ -53,13 +53,13 @@ export default function StepCredentials() {
               value={values[field.name] ?? ""}
               placeholder={field.placeholder}
               onChange={(e) => setValue(field.name, e.target.value)}
-              className="w-full rounded-lg border-slate-300 bg-white text-slate-900 shadow-sm focus:border-primary focus:ring-primary dark:border-slate-700 dark:bg-slate-900 dark:text-white"
+              className="ff-input"
             />
-            <p className="text-sm text-slate-500 dark:text-slate-400">
+            <p className="text-sm text-ash">
               {field.help}{" "}
               {field.link && (
                 <a
-                  className="text-primary hover:underline"
+                  className="text-primary underline decoration-2 underline-offset-4 hover:text-cyan"
                   href={field.link}
                   target="_blank"
                   rel="noreferrer"

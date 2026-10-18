@@ -2,70 +2,288 @@
 @tailwind components;
 @tailwind utilities;
 
-/* Styling for markdown guides rendered inside the app. */
+@layer base {
+  html {
+    scroll-behavior: smooth;
+  }
+
+  body {
+    @apply bg-void text-bone font-body antialiased;
+  }
+
+  ::selection {
+    @apply bg-primary text-void;
+  }
+
+  /* Material Symbols is loaded as a webfont. */
+  .material-symbols-outlined {
+    font-variation-settings:
+      "FILL" 1,
+      "wght" 400,
+      "GRAD" 0,
+      "opsz" 24;
+  }
+
+  /* Hard-edged scrollbars, no rounded anything. */
+  ::-webkit-scrollbar {
+    width: 10px;
+    height: 10px;
+  }
+  ::-webkit-scrollbar-track {
+    background: #07070a;
+  }
+  ::-webkit-scrollbar-thumb {
+    background: #ff2e88;
+    border: 2px solid #07070a;
+  }
+}
+
 @layer components {
+  /* ── Type ─────────────────────────────────────────────────────────── */
+
+  .ff-display {
+    @apply font-display uppercase tracking-tight leading-[0.92];
+  }
+
+  .ff-mono {
+    @apply font-mono uppercase tracking-[0.2em];
+  }
+
+  .ff-kicker {
+    @apply font-mono text-[11px] uppercase tracking-[0.35em] text-primary;
+  }
+
+  /* Chromatic split on hover, the way the reference art does it. */
+  .glitch {
+    position: relative;
+    display: inline-block;
+  }
+
+  .glitch::before,
+  .glitch::after {
+    content: attr(data-text);
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+    opacity: 0;
+    transition: opacity 120ms linear;
+  }
+
+  .glitch::before {
+    color: #00e5ff;
+    transform: translateX(-2px);
+    clip-path: inset(0 0 55% 0);
+  }
+
+  .glitch::after {
+    color: #ff0044;
+    transform: translateX(2px);
+    clip-path: inset(45% 0 0 0);
+  }
+
+  .glitch:hover::before,
+  .glitch:focus-visible::before,
+  .glitch:hover::after,
+  .glitch:focus-visible::after {
+    opacity: 1;
+    animation: glitch 0.3s steps(2) infinite;
+  }
+
+  /* ── Surfaces ─────────────────────────────────────────────────────── */
+
+  .panel {
+    @apply border-2 border-edge bg-panel;
+  }
+
+  .card {
+    @apply relative border-2 border-edge bg-panel p-6 transition
+           hover:border-primary hover:shadow-hard;
+  }
+
+  /* Corner ticks, like a viewfinder. */
+  .card::before,
+  .card::after {
+    content: "";
+    position: absolute;
+    width: 10px;
+    height: 10px;
+    border-color: #00e5ff;
+    opacity: 0;
+    transition: opacity 150ms linear;
+  }
+
+  .card::before {
+    top: -2px;
+    left: -2px;
+    border-top: 2px solid;
+    border-left: 2px solid;
+  }
+
+  .card::after {
+    bottom: -2px;
+    right: -2px;
+    border-bottom: 2px solid;
+    border-right: 2px solid;
+  }
+
+  .card:hover::before,
+  .card:hover::after {
+    opacity: 1;
+  }
+
+  /* ── Controls ─────────────────────────────────────────────────────── */
+
+  .btn {
+    @apply inline-flex items-center justify-center gap-2 border-2 px-5 py-3
+           font-mono text-xs uppercase tracking-[0.2em] transition
+           disabled:cursor-not-allowed disabled:opacity-40;
+  }
+
+  .btn-primary {
+    @apply border-primary bg-primary text-void hover:bg-transparent hover:text-primary
+           hover:shadow-hard;
+  }
+
+  .btn-ghost {
+    @apply border-edge bg-transparent text-bone hover:border-cyan hover:text-cyan
+           hover:shadow-hard-cyan;
+  }
+
+  .btn-acid {
+    @apply border-acid bg-acid text-void hover:bg-transparent hover:text-acid
+           hover:shadow-hard-acid;
+  }
+
+  .ff-input {
+    @apply w-full border-2 border-edge bg-void px-4 py-3 font-mono text-sm text-bone
+           placeholder:text-ash focus:border-primary focus:outline-none
+           focus:shadow-[0_0_0_1px_#ff2e88];
+  }
+
+  .ff-badge {
+    @apply inline-flex items-center gap-2 border border-primary/50 bg-primary/10 px-3 py-1
+           font-mono text-[10px] uppercase tracking-[0.3em] text-primary;
+  }
+
+  /* ── Chrome ───────────────────────────────────────────────────────── */
+
+  .scanlines::after {
+    content: "";
+    position: fixed;
+    inset: 0;
+    z-index: 60;
+    pointer-events: none;
+    background: repeating-linear-gradient(
+      to bottom,
+      rgba(255, 255, 255, 0.035) 0px,
+      rgba(255, 255, 255, 0.035) 1px,
+      transparent 1px,
+      transparent 3px
+    );
+  }
+
+  .grid-bg {
+    background-image:
+      linear-gradient(rgba(255, 46, 136, 0.07) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(255, 46, 136, 0.07) 1px, transparent 1px);
+    background-size: 44px 44px;
+  }
+
+  .rule {
+    @apply h-px w-full bg-edge;
+  }
+
+  /* ── Markdown guides ──────────────────────────────────────────────── */
+
   .guide {
-    @apply text-slate-700 dark:text-slate-300 leading-relaxed;
+    @apply font-body text-bone/85 leading-relaxed;
   }
 
   .guide h1 {
-    @apply text-3xl font-black tracking-tight mb-4 text-slate-900 dark:text-white;
+    @apply ff-display mt-2 mb-6 text-4xl text-bone sm:text-5xl;
   }
 
   .guide h2 {
-    @apply text-2xl font-bold mt-10 mb-3 pb-2 border-b border-slate-200 dark:border-border-dark text-slate-900 dark:text-white scroll-mt-24;
+    @apply ff-display mt-12 mb-4 border-b-2 border-edge pb-3 text-2xl text-bone sm:text-3xl;
   }
 
   .guide h3 {
-    @apply text-lg font-bold mt-6 mb-2 text-slate-900 dark:text-white;
+    @apply ff-mono mt-8 mb-3 text-sm text-cyan;
   }
 
   .guide p {
-    @apply my-3;
+    @apply my-4;
   }
 
   .guide a {
-    @apply text-primary hover:underline;
+    @apply text-primary underline decoration-2 underline-offset-4 hover:text-cyan;
   }
 
   .guide ul {
-    @apply list-disc list-inside my-3 space-y-1;
+    @apply my-4 list-none space-y-2;
+  }
+
+  .guide ul > li {
+    @apply relative pl-6;
+  }
+
+  .guide ul > li::before {
+    content: "//";
+    @apply absolute left-0 font-mono text-[11px] text-primary;
   }
 
   .guide ol {
-    @apply list-decimal list-inside my-3 space-y-1;
+    @apply my-4 list-decimal space-y-2 pl-6;
+  }
+
+  .guide li::marker {
+    @apply font-mono text-xs text-primary;
   }
 
   .guide code {
-    @apply rounded bg-slate-100 dark:bg-slate-800 px-1.5 py-0.5 font-mono text-sm;
+    @apply border border-edge bg-void px-1.5 py-0.5 font-mono text-[0.85em] text-acid;
   }
 
   .guide pre {
-    @apply my-4 rounded-lg bg-[#0d1117] p-4 overflow-x-auto;
+    @apply my-5 overflow-x-auto border-2 border-edge bg-void p-4;
   }
 
   .guide pre code {
-    @apply bg-transparent p-0 text-slate-100 text-sm;
+    @apply border-0 bg-transparent p-0 text-bone/90;
   }
 
   .guide blockquote {
-    @apply my-4 border-l-4 border-primary pl-4 italic text-slate-600 dark:text-slate-400;
+    @apply my-5 border-l-4 border-primary bg-panel px-5 py-3 italic text-ash;
   }
 
   .guide table {
-    @apply w-full my-4 text-sm border-collapse;
+    @apply my-5 w-full border-collapse text-sm;
   }
 
   .guide th,
   .guide td {
-    @apply border border-slate-200 dark:border-border-dark px-3 py-2 text-left;
+    @apply border-2 border-edge px-4 py-2 text-left;
   }
 
   .guide th {
-    @apply font-semibold bg-slate-50 dark:bg-slate-800;
+    @apply bg-shell font-mono text-[11px] uppercase tracking-[0.2em] text-cyan;
   }
 
   .guide img {
-    @apply inline-block my-2 rounded-lg;
+    @apply my-4 inline-block border-2 border-primary;
+  }
+
+  .guide strong {
+    @apply text-bone;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.001ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.001ms !important;
   }
 }

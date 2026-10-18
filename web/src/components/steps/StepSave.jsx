@@ -30,28 +30,28 @@ export default function StepSave() {
   };
 
   const checkbox = (checked, onChange, label, help) => (
-    <label className="flex items-start gap-3 rounded-lg border border-slate-200 p-4 cursor-pointer dark:border-slate-700">
+    <label className="card flex cursor-pointer items-start gap-3 !p-4">
       <input
         type="checkbox"
         checked={checked}
         onChange={(e) => onChange(e.target.checked)}
-        className="mt-1 rounded border-slate-300 text-primary focus:ring-primary dark:border-slate-600 dark:bg-slate-900"
+        className="mt-1 size-4 shrink-0 accent-primary"
       />
       <span>
-        <span className="block font-semibold">{label}</span>
-        <span className="text-sm text-slate-500 dark:text-slate-400">{help}</span>
+        <span className="ff-mono block text-[11px] uppercase tracking-[0.2em] text-bone">{label}</span>
+        <span className="mt-1 block text-sm text-ash">{help}</span>
       </span>
     </label>
   );
 
   return (
     <section>
-      <p className="max-w-2xl text-lg text-slate-600 dark:text-slate-400 mb-6">
+      <p className="mb-6 max-w-2xl text-lg text-ash">
         Choose where to save. Preview first — nothing is written until you
         confirm.
       </p>
 
-      <div className="grid gap-4 max-w-2xl mb-8">
+      <div className="mb-8 grid max-w-2xl gap-4">
         {checkbox(
           toGithub,
           setToGithub,
@@ -70,23 +70,23 @@ export default function StepSave() {
         <button
           onClick={() => save(false)}
           disabled={busy}
-          className="rounded-lg border border-slate-300 px-5 py-2.5 font-medium text-slate-700 transition hover:bg-slate-50 disabled:opacity-50 dark:border-slate-600 dark:text-slate-200 dark:hover:bg-slate-800"
+          className="btn btn-ghost"
         >
           Preview
         </button>
         <button
           onClick={() => save(true)}
           disabled={busy}
-          className="rounded-lg bg-primary px-5 py-2.5 font-bold text-white shadow-lg shadow-primary/20 transition hover:bg-blue-600 disabled:opacity-50"
+          className="btn btn-acid"
         >
           Save credentials
         </button>
       </div>
 
-      {busy && <p className="mt-4 text-slate-500">Working…</p>}
+      {busy && <p className="mt-4 font-mono text-[11px] text-ash">Working…</p>}
 
       {error && (
-        <div className="mt-6 rounded-lg border border-red-300 bg-red-50 p-4 whitespace-pre-line text-red-700 dark:border-red-800 dark:bg-red-950/40 dark:text-red-300">
+        <div className="panel mt-6 whitespace-pre-line border-crimson p-4 text-crimson">
           {error}
         </div>
       )}
@@ -95,13 +95,13 @@ export default function StepSave() {
         <div
           className={`mt-6 rounded-lg border p-4 whitespace-pre-line ${
             result.ok
-              ? "border-green-300 bg-green-50 text-green-800 dark:border-green-800 dark:bg-green-950/40 dark:text-green-300"
-              : "border-red-300 bg-red-50 text-red-700 dark:border-red-800 dark:bg-red-950/40 dark:text-red-300"
+              ? "border-acid text-acid"
+              : "border-crimson text-crimson"
           }`}
         >
           {result.message}
           {result.envUpdated?.length > 0 && (
-            <p className="mt-2 text-sm">
+            <p className="mt-2 font-mono text-[11px] text-ash">
               Updated in .env: {result.envUpdated.join(", ")}
             </p>
           )}

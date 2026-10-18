@@ -22,14 +22,14 @@ export default function StepPrerequisites() {
   return (
     <section>
       <div className="flex flex-col gap-4 mb-8">
-        <p className="text-slate-600 dark:text-slate-400">
+        <p className="text-ash">
           The setup server is already running. Let's confirm it can see
           everything it needs.
         </p>
       </div>
 
       {error && (
-        <div className="mb-6 rounded-lg border border-red-300 bg-red-50 p-4 text-red-700 dark:border-red-800 dark:bg-red-950/40 dark:text-red-300">
+        <div className="panel mb-6 border-crimson p-4 text-crimson">
           Could not reach the setup server: {error}
         </div>
       )}
@@ -39,40 +39,40 @@ export default function StepPrerequisites() {
           <div
             className={`flex items-center gap-3 rounded-lg border p-4 ${
               nodeOk
-                ? "border-green-300 bg-green-50 dark:border-green-800 dark:bg-green-950/40"
-                : "border-amber-300 bg-amber-50 dark:border-amber-800 dark:bg-amber-950/40"
+                ? "border-acid bg-acid/10"
+                : "border-primary bg-primary/10"
             }`}
           >
             <span className="material-symbols-outlined">
-              {nodeOk ? "check_circle" : "warning"}
+              {nodeOk ? "check_circle" : "error"}
             </span>
             <div>
-              <p className="font-semibold">
+              <p className="ff-mono text-[11px] uppercase tracking-[0.2em]">
                 {nodeOk ? "Node.js detected" : "Node.js 20 or newer is required"}
               </p>
-              <p className="text-sm opacity-80">Running {health.node}</p>
+              <p className="mt-1 text-sm text-ash">Running {health.node}</p>
             </div>
           </div>
 
           <div
             className={`flex items-center gap-3 rounded-lg border p-4 ${
               ghOk
-                ? "border-green-300 bg-green-50 dark:border-green-800 dark:bg-green-950/40"
-                : "border-amber-300 bg-amber-50 dark:border-amber-800 dark:bg-amber-950/40"
+                ? "border-acid bg-acid/10"
+                : "border-primary bg-primary/10"
             }`}
           >
             <span className="material-symbols-outlined">
-              {ghOk ? "check_circle" : "warning"}
+              {ghOk ? "check_circle" : "error"}
             </span>
             <div className="flex-1">
-              <p className="font-semibold">
+              <p className="ff-mono text-[11px] uppercase tracking-[0.2em]">
                 {ghOk
                   ? "GitHub CLI ready"
                   : !health.gh?.installed
                     ? "GitHub CLI not installed"
                     : "GitHub CLI installed but not signed in"}
               </p>
-              <p className="text-sm opacity-80">
+              <p className="mt-1 text-sm text-ash">
                 {ghOk
                   ? health.gh.version
                   : "Needed to save your credentials as Actions secrets."}
@@ -91,7 +91,7 @@ export default function StepPrerequisites() {
                       <CopyBlock code={`gh auth login`} language="bash" />
                     </div>
                   )}
-                  <p className="text-sm opacity-80">
+                  <p className="mt-1 text-sm text-ash">
                     You can still save to the local .env and skip this, but the
                     scheduled job needs these secrets.
                   </p>
@@ -101,21 +101,21 @@ export default function StepPrerequisites() {
           </div>
 
           {health.envMissing.length > 0 && (
-            <div className="rounded-lg border border-amber-300 bg-amber-50 p-4 text-amber-800 dark:border-amber-800 dark:bg-amber-950/40 dark:text-amber-300">
-              <p className="font-semibold mb-2">Not configured yet</p>
-              <ul className="list-inside list-disc text-sm">
+            <div className="panel border-primary p-4">
+              <p className="ff-kicker mb-2">Not configured yet</p>
+              <ul className="mt-2 space-y-1 font-mono text-xs text-ash">
                 {health.envMissing.map((name) => (
                   <li key={name}>{name}</li>
                 ))}
               </ul>
-              <p className="mt-2 text-sm opacity-80">
+              <p className="mt-3 text-sm text-ash">
                 The next steps fill these in.
               </p>
             </div>
           )}
 
           {health.envMissing.length === 0 && (
-            <div className="rounded-lg border border-green-300 bg-green-50 p-4 text-green-800 dark:border-green-800 dark:bg-green-950/40 dark:text-green-300">
+            <div className="panel border-acid p-4 text-acid">
               All required variables are present. Continue to verify them.
             </div>
           )}
@@ -123,7 +123,7 @@ export default function StepPrerequisites() {
       )}
 
       <div className="mt-8">
-        <p className="mb-2 text-sm text-slate-500">
+        <p className="ff-mono mb-2 text-[10px] text-ash">
           Prefer the terminal? The same steps work headlessly:
         </p>
         <CopyBlock code={`npm run preflight`} />
