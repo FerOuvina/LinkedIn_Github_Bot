@@ -130,14 +130,28 @@ describe("environment loading", () => {
 
   // A script that reads process.env without loading .env sees nothing, and the
   // symptom ("Missing X") looks like a config mistake rather than a code bug.
+  //
+  // webBase.js is exempt: it is imported by web/vite.config.js, and the Pages
+  // build installs only web/'s own dependencies, so an import there would fail
+  // to resolve. It reads a build-time variable, not a credential.
+  const EXEMPT = new Set(["webBase.js"]);
+
   it.each(scripts)("scripts/%s loads dotenv if it reads process.env", (file) => {
     const text = read(path.join("scripts", file));
     if (!/process\.env/.test(text)) return;
+    if (EXEMPT.has(file)) return;
 
     const loadsDotenv =
       /import\s+["']dotenv\/config["']/.test(text) || /from\s+["']\.\/consts\.js["']/.test(text);
 
     expect(loadsDotenv).toBe(true);
+  });
+
+  it("keeps webBase.js free of imports, since the vite config loads it", () => {
+    const text = read("scripts/webBase.js");
+    expect(text).not.toMatch(/^import\s/m);
+    // It must still read BASE_PATH, so this is not an accidental deletion.
+    expect(text).toContain("BASE_PATH");
   });
 
   it("the linkedin auth script reads its client id from the environment", () => {

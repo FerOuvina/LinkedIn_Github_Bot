@@ -1,5 +1,3 @@
-import "dotenv/config";
-
 /**
  * The path the built app is served under.
  *
@@ -8,6 +6,10 @@ import "dotenv/config";
  * which serves from the root, so the server strips this prefix when present.
  *
  * Set BASE_PATH=/ (or a domain root) at build time if a custom domain is added.
+ *
+ * Deliberately dependency-free: web/vite.config.js imports this, and the Pages
+ * build installs nothing but web/'s own dependencies, so importing dotenv here
+ * would fail to resolve from inside web/.
  */
 function normalize(value) {
   const trimmed = String(value).trim();
