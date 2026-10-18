@@ -51,6 +51,46 @@ describe("privacy policy page", () => {
     expect(privacyPage).toContain('href="../"');
   });
 
+  it("strips the markdown's own title so the page shows one heading", () => {
+    const policy = readFileSync(path.join(ROOT, "privacy-policy.md"), "utf8");
+
+    // The markdown starts with its own "# Privacy Policy".
+    expect(policy.trimStart()).toMatch(/^#\s/);
+
+    // Pull the regex the page actually ships, rather than restating it here.
+    const literal = privacyPage.match(
+      /markdown\.replace\((\/\^\\s\*#[\s\S]*?\/[a-z]*)/
+    );
+    expect(literal, "could not find the title-stripping regex in the page").toBeTruthy();
+
+    const lastSlash = literal[1].lastIndexOf("/");
+    const re = new RegExp(literal[1].slice(1, lastSlash), literal[1].slice(lastSlash + 1));
+
+    const stripped = policy.replace(re, "");
+    expect(stripped.trimStart()).not.toMatch(/^#\s/);
+    // The body must survive, otherwise the page would render nothing.
+    expect(stripped.trim().length).toBeGreaterThan(50);
+    expect(stripped).toContain("Data Storage");
+  });
+
+  it("renders exactly one page title", () => {
+    const h1s = [...privacyPage.matchAll(/<h1[^>]*>/g)];
+    expect(h1s).toHaveLength(1);
+  });
+
+  it("keeps the header slim", () => {
+    // It was eating a large part of the viewport at 4rem.
+    const height = privacyPage.match(/\.bar\s*\{[^}]*height:\s*([\d.]+)rem/);
+    expect(height, "header height not found").toBeTruthy();
+    expect(Number(height[1])).toBeLessThanOrEqual(3.5);
+  });
+
+  it("keeps the page title small enough to read", () => {
+    const size = privacyPage.match(/h1\s*\{[\s\S]*?font-size:\s*clamp\([^,]+,\s*[^,]+,\s*([\d.]+)rem\)/);
+    expect(size, "title size not found").toBeTruthy();
+    expect(Number(size[1])).toBeLessThanOrEqual(3);
+  });
+
   it("still loads the policy markdown next to it", () => {
     expect(privacyPage).toContain("privacy-policy.md");
   });
