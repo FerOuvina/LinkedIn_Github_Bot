@@ -31,3 +31,6 @@ export const api = {
 };
 
 export const docsUrl = (file) => at(`/docs/${file}`);
+
+/** Absolute path within the site, for plain <a> tags and non-SPA routes. */
+export const sitePath = (path) => at(path);

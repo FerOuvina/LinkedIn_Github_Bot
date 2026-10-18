@@ -81,12 +81,15 @@ export default function StaticSetup() {
             <span className="material-symbols-outlined text-primary">rocket_launch</span>
             Setup guide
           </Link>
-          <Link
-            href="/getting-started"
-            className="flex h-9 items-center rounded-lg border border-gray-200 px-4 text-sm font-medium dark:border-border-dark"
+          <a
+            href="https://github.com/FerOuvina/LinkedIn_Github_Bot"
+            target="_blank"
+            rel="noreferrer"
+            className="flex h-9 items-center gap-2 rounded-lg border border-gray-200 px-4 text-sm font-medium transition hover:border-primary/50 dark:border-border-dark"
           >
-            Interactive wizard
-          </Link>
+            <span className="material-symbols-outlined text-[18px]">code</span>
+            Get the code
+          </a>
         </div>
       </header>
 
