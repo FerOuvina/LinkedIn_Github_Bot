@@ -1,7 +1,7 @@
 import {
   GITHUB_TOKEN,
   LINKEDIN_TOKEN,
-  HF_API_KEY,
+  GROQ_API_KEY,
   LINKEDIN_AUTHOR,
   HUB_USER,
 } from "./consts.js";
@@ -11,7 +11,7 @@ const requiredEnv = {
   LINKEDIN_TOKEN,
   LINKEDIN_AUTHOR,
   HUB_USER,
-  HF_API_KEY,
+  GROQ_API_KEY,
 };
 
 export const envMissing = Object.entries(requiredEnv)

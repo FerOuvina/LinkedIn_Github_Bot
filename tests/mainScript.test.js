@@ -51,7 +51,7 @@ function githubHandlers(commitsByRepo) {
     if (commitsMatch) {
       return jsonResponse(commitsByRepo[commitsMatch[1]] ?? []);
     }
-    if (url.includes("router.huggingface.co")) {
+    if (url.includes("api.groq.com")) {
       return jsonResponse({ choices: [{ message: { content: "AI post body" } }] });
     }
     if (url.includes("api.linkedin.com")) {
@@ -111,7 +111,7 @@ describe("run()", () => {
 
     expect(result).toBe("dry-run");
 
-    const hfCall = calls.find((c) => c.url.includes("router.huggingface.co"));
+    const hfCall = calls.find((c) => c.url.includes("api.groq.com"));
     expect(hfCall).toBeDefined();
 
     const sent = JSON.parse(hfCall.options.body).messages[1].content;
@@ -186,7 +186,7 @@ describe("run()", () => {
   it("throws when the LLM call fails", async () => {
     mockFetch((url) => {
       const handlers = githubHandlers({ alpha: [commit("feat: add auth")] });
-      if (url.includes("router.huggingface.co")) {
+      if (url.includes("api.groq.com")) {
         return jsonResponse({ error: "boom" }, false, 500);
       }
       return handlers(url);

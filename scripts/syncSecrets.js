@@ -1,0 +1,138 @@
+import "dotenv/config";
+import { spawn } from "node:child_process";
+
+export const REQUIRED_SECRETS = [
+  "HUB_USER",
+  "GITHUB_TOKEN",
+  "LINKEDIN_ACCESS_TOKEN",
+  "LINKEDIN_AUTHOR_URN",
+  "GROQ_API_KEY",
+];
+
+/** Optional secrets: only pushed when the user actually has a value for them. */
+const OPTIONAL_SECRETS = [
+  "GROQ_MODEL",
+  "LINKEDIN_REFRESH_TOKEN",
+  "LINKEDIN_CLIENT_ID",
+  "LINKEDIN_CLIENT_SECRET",
+];
+
+/**
+ * Run a command, optionally writing to stdin, so secret values never appear in
+ * the process argument list where other users could see them.
+ */
+function run(cmd, args = [], { input } = {}) {
+  return new Promise((resolve, reject) => {
+    const child = spawn(cmd, args, { stdio: ["pipe", "pipe", "pipe"] });
+    let stdout = "";
+    let stderr = "";
+
+    child.stdout.on("data", (d) => (stdout += d));
+    child.stderr.on("data", (d) => (stderr += d));
+    child.on("error", reject);
+    child.on("close", (code) => {
+      if (code === 0) resolve({ stdout, stderr });
+      else reject(Object.assign(new Error(`exited with ${code}`), { stdout, stderr }));
+    });
+
+    if (input !== undefined) child.stdin.end(input);
+    else child.stdin.end();
+  });
+}
+
+/** Values are never returned or logged — only their names. */
+export function planSecrets(env = process.env, names = [...REQUIRED_SECRETS, ...OPTIONAL_SECRETS]) {
+  const set = [];
+  const missing = [];
+  const skipped = [];
+
+  for (const name of names) {
+    const value = env[name];
+    const required = REQUIRED_SECRETS.includes(name);
+
+    if (value) set.push(name);
+    else if (required) missing.push(name);
+    else skipped.push(name);
+  }
+
+  return { set, missing, skipped };
+}
+
+/**
+ * Push .env values to the repository's Actions secrets using the gh CLI,
+ * which handles the libsodium encryption GitHub requires.
+ */
+export async function syncSecrets({
+  env = process.env,
+  repo,
+  dryRun = true,
+  runCmd = run,
+} = {}) {
+  const plan = planSecrets(env);
+
+  if (plan.missing.length > 0) {
+    return { ok: false, applied: false, reason: "missing", ...plan };
+  }
+
+  if (dryRun) {
+    return { ok: true, applied: false, reason: "dry-run", ...plan };
+  }
+
+  try {
+    await runCmd("gh", ["--version"]);
+  } catch {
+    return {
+      ok: false,
+      applied: false,
+      reason: "gh-missing",
+      ...plan,
+      hint: "Install the GitHub CLI (winget install GitHub.cli) and run `gh auth login`.",
+    };
+  }
+
+  const applied = [];
+  for (const name of plan.set) {
+    const args = ["secret", "set", name];
+    if (repo) args.push("--repo", repo);
+
+    try {
+      // Value goes over stdin, never as an argument.
+      await runCmd("gh", args, { input: env[name] });
+      applied.push(name);
+    } catch (err) {
+      return {
+        ok: false,
+        applied: false,
+        reason: "write-failed",
+        ...plan,
+        failedSecret: name,
+        detail: String(err.stderr ?? err.message).slice(0, 300),
+      };
+    }
+  }
+
+  return { ok: true, applied: true, ...plan, written: applied };
+}
+
+export function formatSyncResult(result) {
+  if (result.reason === "missing") {
+    return `❌ Missing from .env: ${result.missing.join(", ")}`;
+  }
+  if (result.reason === "gh-missing") {
+    return `❌ ${result.hint}`;
+  }
+  if (result.reason === "write-failed") {
+    return `❌ Failed to set ${result.failedSecret}: ${result.detail}`;
+  }
+  if (!result.applied) {
+    return [
+      `Would set ${result.set.length} secret(s): ${result.set.join(", ")}`,
+      result.skipped.length > 0 ? `Skipped (not set): ${result.skipped.join(", ")}` : null,
+      "Re-run with --apply to write them.",
+    ]
+      .filter(Boolean)
+      .join("\n");
+  }
+  return `✅ Set ${result.written.length} secret(s): ${result.written.join(", ")}`;
+}
+

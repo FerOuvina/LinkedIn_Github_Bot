@@ -1,11 +1,9 @@
 import getSinceDate from "./getSinceDate.js";
 import {
   GIT_HEADERS,
-  HF_HEADERS,
   LINKEDIN_HEADERS,
   LINKEDIN_AUTHOR,
   HUB_USER,
-  HF_MODEL,
 } from "./consts.js";
 import { scoreCommits, rankCommits } from "./commitScoring.js";
 import {
@@ -14,6 +12,7 @@ import {
   topActiveRepos,
 } from "./github.js";
 import { requestJson } from "./http.js";
+import { summarize } from "./llm.js";
 
 const DRY_RUN = process.argv.includes("--dry-run");
 
@@ -21,46 +20,7 @@ const DRY_RUN = process.argv.includes("--dry-run");
 const now = new Date(Date.now());
 const since = getSinceDate(24, now);
 
-// Helper: call Hugging Face text-generation API
-async function generateSummary(prompt) {
-  const url = "https://router.huggingface.co/v1/chat/completions";
-  const model = HF_MODEL;
-
-  const payload = {
-    model,
-    messages: [
-      {
-        role: "system",
-        content:
-          "Start the post with normal greetings, something nice or similar but short, respond ONLY with the LinkedIn post text. Do not add any preamble, explanation, or labels, and DON'T forget to add a space after every emoji.",
-      },
-      {
-        role: "user",
-        content: prompt,
-      },
-    ],
-  };
-
-  // A POST is never retried here: a blind retry risks publishing twice.
-  const data = await requestJson(
-    url,
-    { method: "POST", headers: HF_HEADERS, body: JSON.stringify(payload), retries: 0 }
-  );
-
-  // Chat completion response: choices[0].message.content
-  if (Array.isArray(data.choices) && data.choices[0]?.message?.content) {
-    return data.choices[0].message.content;
-  }
-
-  // Fallbacks for older response shapes
-  if (Array.isArray(data) && data[0]?.generated_text)
-    return data[0].generated_text;
-  if (data.generated_text) return data.generated_text;
-
-  throw new Error(
-    `Unexpected Hugging Face response shape: ${JSON.stringify(data)}`
-  );
-}
+// Groq call lives in llm.js so the preflight probe can reuse the same shape.
 
 /**
  * Build and publish the daily post.
@@ -112,7 +72,7 @@ export default async function run() {
     Commits:
     ${commitsText}`;
 
-  const aiSummary = await generateSummary(prompt);
+  const aiSummary = await summarize(prompt);
 
   const postText = `${aiSummary}\n\n📝 This post was automated using the LinkedIn API, if you want to learn more about it, check out my repository on Github:\n🔗 My GitHub: https://github.com/${HUB_USER}\n🔗 My Portfolio: https://ouvina-fernando.vercel.app`;
 

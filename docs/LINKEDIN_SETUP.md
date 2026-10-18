@@ -92,7 +92,7 @@ npm run preflight
 ❌ Some credentials need attention:
   ✅ GitHub: authenticated as your-username
   ✅ LinkedIn: authenticated as Your Name
-  ✅ Hugging Face: model "zai-org/GLM-5.3-Flash" is available
+  ✅ Groq: model "<configured model>" is available and the key works
 ```
 
 `✅ LinkedIn` means the token is live. If it says `EXPIRED_ACCESS_TOKEN`, the

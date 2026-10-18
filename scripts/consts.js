@@ -2,8 +2,8 @@ import "dotenv/config";
 
 export const GITHUB_TOKEN = process.env.GITHUB_TOKEN;
 export const LINKEDIN_TOKEN = process.env.LINKEDIN_ACCESS_TOKEN;
-export const HF_API_KEY = process.env.HUGGINGFACE_API_KEY;
-export const HF_MODEL = process.env.HF_MODEL || "zai-org/GLM-5.3";
+export const GROQ_API_KEY = process.env.GROQ_API_KEY;
+export const GROQ_MODEL = process.env.GROQ_MODEL || "qwen/qwen3.8-27b";
 export const LINKEDIN_AUTHOR = process.env.LINKEDIN_AUTHOR_URN;
 export const HUB_USER = process.env.HUB_USER;
 
@@ -19,7 +19,7 @@ export const LINKEDIN_HEADERS = {
   "Content-Type": "application/json",
 };
 
-export const HF_HEADERS = {
-  Authorization: `Bearer ${HF_API_KEY}`,
+export const GROQ_HEADERS = {
+  Authorization: `Bearer ${GROQ_API_KEY}`,
   "Content-Type": "application/json",
 };

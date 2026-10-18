@@ -14,7 +14,7 @@ async function runCli(args = [], env = {}) {
   const blank = {
     GITHUB_TOKEN: "",
     LINKEDIN_ACCESS_TOKEN: "",
-    HUGGINGFACE_API_KEY: "",
+    GROQ_API_KEY: "",
     LINKEDIN_AUTHOR_URN: "",
     HUB_USER: "",
   };
@@ -47,7 +47,7 @@ describe("dailySummary CLI exit codes", () => {
       "LINKEDIN_TOKEN",
       "LINKEDIN_AUTHOR",
       "HUB_USER",
-      "HF_API_KEY",
+      "GROQ_API_KEY",
     ]) {
       expect(stderr).toContain(key);
     }
