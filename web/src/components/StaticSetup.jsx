@@ -74,18 +74,18 @@ export default function StaticSetup() {
   }, []);
 
   return (
-    <div className="min-h-screen bg-background-light font-display text-slate-900 dark:bg-background-dark dark:text-white">
-      <header className="border-b border-gray-200 dark:border-border-dark bg-white/80 dark:bg-background-dark/80 backdrop-blur-md">
+    <div className="scanlines grid-bg min-h-screen bg-void font-body text-bone">
+      <header className="sticky top-0 z-40 border-b-2 border-edge bg-void/90 backdrop-blur-md">
         <div className="mx-auto flex h-16 max-w-4xl items-center justify-between px-4 sm:px-6">
-          <Link href="/" className="flex items-center gap-2 font-bold">
+          <Link href="/" className="flex items-center gap-2">
             <span className="material-symbols-outlined text-primary">rocket_launch</span>
-            Setup guide
+            <span className="ff-mono text-sm">setup_guide</span>
           </Link>
           <a
             href="https://github.com/FerOuvina/LinkedIn_Github_Bot"
             target="_blank"
             rel="noreferrer"
-            className="flex h-9 items-center gap-2 rounded-lg border border-gray-200 px-4 text-sm font-medium transition hover:border-primary/50 dark:border-border-dark"
+            className="btn btn-ghost px-4 py-2"
           >
             <span className="material-symbols-outlined text-[18px]">code</span>
             Get the code
@@ -94,10 +94,10 @@ export default function StaticSetup() {
       </header>
 
       <main className="mx-auto max-w-4xl px-4 py-10 sm:px-6">
-        <h1 className="text-3xl font-black tracking-tight sm:text-4xl">
+        <h1 className="ff-display text-4xl sm:text-5xl">
           Getting started
         </h1>
-        <p className="mt-3 max-w-2xl text-lg text-slate-600 dark:text-slate-400">
+        <p className="mt-4 max-w-2xl text-lg text-ash">
           Six steps, about ten minutes. Nothing here needs a browser-based
           setup: run the commands in your terminal and everything works the same
           way.
@@ -106,13 +106,13 @@ export default function StaticSetup() {
         <ol className="mt-10 space-y-10">
           {STEPS.map((step, index) => (
             <li key={step.title} className="flex gap-5">
-              <span className="flex size-9 shrink-0 items-center justify-center rounded-full bg-primary/10 font-bold text-primary">
+              <span className="ff-mono flex size-9 shrink-0 items-center justify-center border-2 border-primary bg-primary/10 text-primary">
                 {index + 1}
               </span>
 
               <div className="min-w-0 flex-1">
-                <h2 className="text-xl font-bold">{step.title}</h2>
-                <p className="mt-2 text-slate-600 dark:text-slate-400">
+                <h2 className="ff-display text-xl">{step.title}</h2>
+                <p className="mt-2 text-ash">
                   {step.body}
                 </p>
 
@@ -123,7 +123,7 @@ export default function StaticSetup() {
                 )}
 
                 {step.note && (
-                  <p className="mt-3 text-sm text-slate-500 dark:text-slate-400">
+                  <p className="mt-3 text-sm text-ash">
                     {step.note}
                   </p>
                 )}
@@ -131,7 +131,7 @@ export default function StaticSetup() {
                 {step.link && (
                   <Link
                     to="/guide"
-                    className="mt-3 inline-block text-sm font-medium text-primary hover:underline"
+                    className="ff-mono mt-3 inline-block text-[11px] text-primary hover:text-cyan"
                   >
                     {step.link.label} →
                   </Link>
@@ -142,7 +142,7 @@ export default function StaticSetup() {
                     href={guideHref}
                     target="_blank"
                     rel="noreferrer"
-                    className="ml-4 text-sm text-slate-500 hover:underline"
+                    className="ff-mono ml-4 text-[11px] text-ash hover:text-primary"
                   >
                     Raw markdown
                   </a>
@@ -152,13 +152,13 @@ export default function StaticSetup() {
           ))}
         </ol>
 
-        <div className="mt-12 rounded-xl border border-slate-200 p-5 text-sm text-slate-600 dark:border-border-dark dark:text-slate-400">
-          <p className="font-semibold">Why is this read-only?</p>
+        <div className="panel mt-12 p-6 text-sm text-ash">
+          <p className="ff-mono text-xs uppercase tracking-[0.2em] text-primary">Why is this read-only?</p>
           <p className="mt-1">
             The wizard checks your credentials, completes the LinkedIn OAuth
             flow and writes secrets to your repository. All of that needs a
             server running on your own machine, so run{" "}
-            <code className="rounded bg-slate-100 px-1 py-0.5 font-mono dark:bg-slate-800">
+            <code className="border border-edge bg-void px-1.5 py-0.5 font-mono text-acid">
               npm run setup
             </code>{" "}
             to use it. These steps are the same ones, written out.

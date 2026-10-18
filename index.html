@@ -1,112 +1,385 @@
-<!doctype html>
+<!DOCTYPE html>
 <html lang="en">
-<head>
-    <meta charset="utf-8" />
-    <meta name="viewport" content="width=device-width,initial-scale=1" />
-    <title>Privacy Policy</title>
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="theme-color" content="#07070a" />
+    <meta name="description" content="Privacy policy for the GitHub to LinkedIn bot." />
+
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Archivo+Black&family=Space+Grotesk:wght@400;500&family=JetBrains+Mono:wght@400&family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap"
+      rel="stylesheet"
+    />
+
+    <!-- Pinned exactly, so a CDN update cannot change this page's behaviour. -->
+    <script src="https://cdn.jsdelivr.net/npm/marked@15.0.12/marked.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/dompurify@3.4.17/dist/purify.min.js"></script>
+
+    <title>privacy // github→linkedin</title>
+
     <style>
-        :root { --bg:#f7f8fa; --card:#ffffff; --muted:#6b7280; --accent:#2563eb; }
-        body { margin:0; font-family:Inter,system-ui,-apple-system,Segoe UI,Roboto,"Helvetica Neue",Arial; background:var(--bg); color:#111827; }
-        .wrap { max-width:900px; margin:48px auto; padding:24px; }
-        header { display:flex; gap:12px; align-items:center; margin-bottom:18px; }
-        h1 { margin:0; font-size:1.25rem; }
-        .meta { color:var(--muted); font-size:0.9rem; }
-        .card { background:var(--card); border-radius:10px; padding:28px; box-shadow:0 1px 2px rgba(16,24,40,0.04); }
-        #content { line-height:1.65; }
-        pre, code { background:#0f172a; color:#f8fafc; padding:.15rem .4rem; border-radius:6px; font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, "Roboto Mono", "Helvetica Neue", monospace; }
-        img { max-width:100%; height:auto; }
-        .file-picker { margin-top:12px; color:var(--muted); }
-        .error { color:#b91c1c; margin-top:12px; }
-        a { color:var(--accent); }
+      :root {
+        --void: #07070a;
+        --panel: #101017;
+        --edge: #26262f;
+        --bone: #f4f4f5;
+        --ash: #8b8b9e;
+        --primary: #ff2e88;
+        --cyan: #00e5ff;
+        --acid: #ccff00;
+      }
+
+      * {
+        box-sizing: border-box;
+      }
+
+      body {
+        margin: 0;
+        background: var(--void);
+        color: var(--bone);
+        font-family: "Space Grotesk", system-ui, sans-serif;
+        line-height: 1.65;
+      }
+
+      /* Scanlines, matching the main site. */
+      body::after {
+        content: "";
+        position: fixed;
+        inset: 0;
+        z-index: 60;
+        pointer-events: none;
+        background: repeating-linear-gradient(
+          to bottom,
+          rgba(255, 255, 255, 0.035) 0px,
+          rgba(255, 255, 255, 0.035) 1px,
+          transparent 1px,
+          transparent 3px
+        );
+      }
+
+      .wrap {
+        max-width: 48rem;
+        margin: 0 auto;
+        padding: 0 1.25rem 6rem;
+      }
+
+      header {
+        position: sticky;
+        top: 0;
+        z-index: 40;
+        background: rgba(7, 7, 10, 0.92);
+        backdrop-filter: blur(8px);
+        border-bottom: 2px solid var(--edge);
+      }
+
+      .bar {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        height: 4rem;
+      }
+
+      .brand {
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+        font-family: "JetBrains Mono", monospace;
+        font-size: 0.8rem;
+        text-transform: uppercase;
+        letter-spacing: 0.2em;
+        color: var(--bone);
+        text-decoration: none;
+      }
+
+      .brand span {
+        color: var(--primary);
+      }
+
+      .kicker {
+        font-family: "JetBrains Mono", monospace;
+        font-size: 0.65rem;
+        text-transform: uppercase;
+        letter-spacing: 0.35em;
+        color: var(--primary);
+        margin-bottom: 0.75rem;
+        display: block;
+      }
+
+      h1 {
+        font-family: "Archivo Black", Impact, sans-serif;
+        text-transform: uppercase;
+        line-height: 0.92;
+        letter-spacing: -0.02em;
+        font-size: clamp(2.5rem, 8vw, 4rem);
+        margin: 3.5rem 0 1rem;
+      }
+
+      h2 {
+        font-family: "Archivo Black", Impact, sans-serif;
+        text-transform: uppercase;
+        font-size: 1.5rem;
+        margin: 3rem 0 1rem;
+        padding-bottom: 0.75rem;
+        border-bottom: 2px solid var(--edge);
+      }
+
+      h3 {
+        font-family: "JetBrains Mono", monospace;
+        text-transform: uppercase;
+        letter-spacing: 0.2em;
+        font-size: 0.8rem;
+        color: var(--cyan);
+        margin: 2rem 0 0.75rem;
+      }
+
+      p,
+      li {
+        color: rgba(244, 244, 245, 0.86);
+      }
+
+      a {
+        color: var(--primary);
+        text-decoration: underline;
+        text-underline-offset: 4px;
+        text-decoration-thickness: 2px;
+      }
+
+      a:hover {
+        color: var(--cyan);
+      }
+
+      code {
+        font-family: "JetBrains Mono", monospace;
+        font-size: 0.85em;
+        color: var(--acid);
+        border: 1px solid var(--edge);
+        background: var(--void);
+        padding: 0.1rem 0.35rem;
+      }
+
+      pre {
+        background: var(--void);
+        border: 2px solid var(--edge);
+        padding: 1rem;
+        overflow-x: auto;
+      }
+
+      pre code {
+        border: 0;
+        padding: 0;
+        color: var(--bone);
+      }
+
+      ul {
+        list-style: none;
+        padding-left: 0;
+      }
+
+      ul > li {
+        position: relative;
+        padding-left: 1.5rem;
+        margin-bottom: 0.5rem;
+      }
+
+      ul > li::before {
+        content: "//";
+        position: absolute;
+        left: 0;
+        font-family: "JetBrains Mono", monospace;
+        font-size: 0.7rem;
+        color: var(--primary);
+      }
+
+      ol {
+        padding-left: 1.5rem;
+      }
+
+      li::marker {
+        font-family: "JetBrains Mono", monospace;
+        font-size: 0.75rem;
+        color: var(--primary);
+      }
+
+      blockquote {
+        border-left: 4px solid var(--primary);
+        background: var(--panel);
+        padding: 0.75rem 1.25rem;
+        margin: 1.5rem 0;
+        font-style: italic;
+        color: var(--ash);
+      }
+
+      table {
+        width: 100%;
+        border-collapse: collapse;
+        font-size: 0.9rem;
+        margin: 1.5rem 0;
+      }
+
+      th,
+      td {
+        border: 2px solid var(--edge);
+        padding: 0.6rem 0.9rem;
+        text-align: left;
+      }
+
+      th {
+        background: var(--panel);
+        font-family: "JetBrains Mono", monospace;
+        font-size: 0.7rem;
+        text-transform: uppercase;
+        letter-spacing: 0.2em;
+        color: var(--cyan);
+      }
+
+      img {
+        border: 2px solid var(--primary);
+        margin: 1rem 0;
+      }
+
+      .panel {
+        margin: 3rem 0;
+        padding: 1.5rem;
+        background: var(--panel);
+        border: 2px solid var(--edge);
+      }
+
+      .status {
+        display: flex;
+        align-items: center;
+        gap: 0.6rem;
+        font-family: "JetBrains Mono", monospace;
+        font-size: 0.7rem;
+        text-transform: uppercase;
+        letter-spacing: 0.25em;
+        color: var(--ash);
+      }
+
+      .dot {
+        width: 8px;
+        height: 8px;
+        background: var(--acid);
+        animation: blink 1s steps(1) infinite;
+      }
+
+      @keyframes blink {
+        0%, 49% { opacity: 1; }
+        50%, 100% { opacity: 0; }
+      }
+
+      /* Same as the app: no blinking or motion if the reader asked for none. */
+      @media (prefers-reduced-motion: reduce) {
+        *,
+        *::before,
+        *::after {
+          animation-duration: 0.001ms !important;
+          animation-iteration-count: 1 !important;
+          transition-duration: 0.001ms !important;
+        }
+      }
+
+      footer {
+        border-top: 2px solid var(--edge);
+        margin-top: 5rem;
+        padding: 2rem 0;
+        font-family: "JetBrains Mono", monospace;
+        font-size: 0.65rem;
+        text-transform: uppercase;
+        letter-spacing: 0.2em;
+        color: var(--ash);
+      }
     </style>
-</head>
-<body>
-    <div class="wrap">
-        <header>
-            <h1>Privacy Policy</h1>
-        </header>
+  </head>
 
-        <div class="card">
-            <div id="content">Loading privacy policy…</div>
+  <body>
+    <header>
+      <div class="wrap bar">
+        <a class="brand" href="../">
+          github<span>→</span>linkedin
+        </a>
+        <span class="status"><span class="dot"></span>policy</span>
+      </div>
+    </header>
 
-            <div class="file-picker" id="picker" style="display:none">
-                <label>Or open a local file: <input type="file" id="file" accept=".md,text/markdown,text/plain"></label>
-            </div>
+    <main class="wrap">
+      <span class="kicker">legal // read this</span>
+      <h1>Privacy policy</h1>
 
-            <div id="error" class="error" style="display:none"></div>
-        </div>
-    </div>
+      <div id="content" class="status">loading_policy…</div>
+    </main>
+
+    <footer>
+      <div class="wrap">no tracking // no accounts // no servers</div>
+    </footer>
 
     <script>
-        (function(){
-            const contentEl = document.getElementById('content');
-            const pickerEl = document.getElementById('picker');
-            const fileInput = document.getElementById('file');
-            const errorEl = document.getElementById('error');
+      const candidates = [
+        "privacy-policy.md",
+        "privacy_policy.md",
+        "privacy policy.md",
+        "PrivacyPolicy.md",
+        "privacy.md",
+      ];
 
-            // Try common filenames in order
-            const candidates = ['privacy-policy.md','privacy_policy.md','privacy policy.md','PrivacyPolicy.md','privacy.md'];
+      const contentEl = document.getElementById("content");
 
-            async function loadMarkdownText(url){
-                const res = await fetch(url);
-                if (!res.ok) throw new Error('HTTP '+res.status);
-                return res.text();
-            }
+      async function attemptLoad() {
+        for (const url of candidates) {
+          try {
+            const res = await fetch(url);
+            if (!res.ok) continue;
 
-            async function renderMarkdown(md){
-                // load marked and DOMPurify if not present
-                if (!window.marked) {
-                    await new Promise((resolve, reject)=>{
-                        const s = document.createElement('script');
-                        s.src = 'https://cdn.jsdelivr.net/npm/marked@15.0.12/marked.min.js';
-                        s.onload = resolve; s.onerror = reject;
-                        document.head.appendChild(s);
-                    });
-                }
-                if (!window.DOMPurify) {
-                    await new Promise((resolve, reject)=>{
-                        const s = document.createElement('script');
-                        s.src = 'https://cdn.jsdelivr.net/npm/dompurify@3.4.17/dist/purify.min.js';
-                        s.onload = resolve; s.onerror = reject;
-                        document.head.appendChild(s);
-                    });
-                }
-                const html = window.marked.parse(md || '');
-                contentEl.innerHTML = window.DOMPurify.sanitize(html);
-            }
+            const md = await res.text();
+            const html = window.marked.parse(md || "");
+            // Sanitised: the policy is repo content, but the renderer must not
+            // be the reason untrusted HTML reaches the page.
+            contentEl.className = "";
+            contentEl.innerHTML = window.DOMPurify.sanitize(html);
+            document.title = "privacy // github→linkedin";
+            return;
+          } catch (err) {
+            /* try the next candidate */
+          }
+        }
 
-            async function attemptLoad(){
-                for (const name of candidates){
-                    try {
-                        const md = await loadMarkdownText(name);
-                        await renderMarkdown(md);
-                        return;
-                    } catch(e){
-                        // continue
-                    }
-                }
-                // no file found — show picker
-                contentEl.textContent = 'No privacy-policy markdown found in this folder.';
-                pickerEl.style.display = '';
-                errorEl.style.display = 'none';
-            }
+        contentEl.innerHTML =
+          '<div class="panel">No privacy-policy markdown found next to this page.</div>';
+      }
 
-            fileInput?.addEventListener('change', async (ev)=>{
-                const f = ev.target.files && ev.target.files[0];
-                if (!f) return;
-                try {
-                    const text = await f.text();
-                    await renderMarkdown(text);
-                    errorEl.style.display = 'none';
-                } catch(e){
-                    errorEl.textContent = 'Failed to read file: '+(e && e.message || e);
-                    errorEl.style.display = '';
-                }
-            });
+      function loadLibraries() {
+        return new Promise((resolve, reject) => {
+          const script = document.createElement("script");
+          script.src =
+            "https://cdn.jsdelivr.net/npm/marked@15.0.12/marked.min.js";
+          script.onload = resolve;
+          script.onerror = reject;
+          document.head.appendChild(script);
+        });
+      }
 
-            // Start
-            attemptLoad();
-        })();
+      function loadPurifier() {
+        return new Promise((resolve, reject) => {
+          const script = document.createElement("script");
+          script.src =
+            "https://cdn.jsdelivr.net/npm/dompurify@3.4.17/dist/purify.min.js";
+          script.onload = resolve;
+          script.onerror = reject;
+          document.head.appendChild(script);
+        });
+      }
+
+      (async () => {
+        try {
+          if (!window.marked) await loadLibraries();
+          if (!window.DOMPurify) await loadPurifier();
+          await attemptLoad();
+        } catch (err) {
+          contentEl.innerHTML =
+            '<div class="panel">Could not load the markdown renderer.</div>';
+        }
+      })();
     </script>
-</body>
+  </body>
 </html>
