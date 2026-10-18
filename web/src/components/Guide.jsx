@@ -3,6 +3,8 @@ import { Link } from "wouter";
 import { marked } from "marked";
 import DOMPurify from "dompurify";
 import { rewriteRelativeUrls, extractHeadings } from "../lib/markdown.js";
+import { docsUrl } from "../lib/api.js";
+import HostedBanner from "./HostedBanner.jsx";
 
 const GUIDES = [
   { file: "LINKEDIN_SETUP.md", title: "LinkedIn setup", blurb: "Create your LinkedIn app and get a token" },
@@ -14,7 +16,7 @@ export default function Guide() {
   useEffect(() => {
     const file = GUIDES[0].file;
 
-    fetch(`/docs/${file}`)
+    fetch(docsUrl(file))
       .then((res) => {
         if (!res.ok) throw new Error(`Could not load the guide (${res.status})`);
         return res.text();
@@ -40,7 +42,7 @@ export default function Guide() {
           </Link>
           <div className="flex items-center gap-3">
             <a
-              href={`/docs/${GUIDES[0].file}`}
+              href={docsUrl(GUIDES[0].file)}
               target="_blank"
               rel="noreferrer"
               className="hidden sm:flex h-9 items-center gap-2 rounded-lg border border-gray-200 px-4 text-sm font-medium dark:border-border-dark"
@@ -58,8 +60,9 @@ export default function Guide() {
         </div>
       </header>
 
-      <main className="mx-auto flex max-w-5xl flex-col gap-8 px-4 py-10 sm:px-6 md:flex-row">
-        <aside className="hidden w-56 shrink-0 md:block">
+      <HostedBanner />
+
+      <main className="mx-auto flex max-w-5xl flex-col gap-8 px-4 py-10 sm:px-6 md:flex-row">        <aside className="hidden w-56 shrink-0 md:block">
           <p className="mb-3 text-xs font-bold uppercase tracking-wider text-slate-500">
             On this page
           </p>
