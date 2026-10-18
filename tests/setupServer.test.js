@@ -30,7 +30,7 @@ const FULL_ENV = {
   GITHUB_TOKEN: "gh-secret-value",
   LINKEDIN_ACCESS_TOKEN: "li-secret-value",
   LINKEDIN_AUTHOR_URN: "urn:li:person:abc",
-  HUGGINGFACE_API_KEY: "hf-secret-value",
+  GROQ_API_KEY: "gsk-secret-value",
 };
 
 describe("GET /api/health", () => {

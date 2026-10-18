@@ -6,8 +6,8 @@ const FULL_ENV = {
   GITHUB_TOKEN: "gh-secret-value",
   LINKEDIN_ACCESS_TOKEN: "li-secret-value",
   LINKEDIN_AUTHOR_URN: "urn:li:person:abc",
-  HUGGINGFACE_API_KEY: "hf-secret-value",
-  HF_MODEL: "zai-org/GLM-5.3-Flash",
+  GROQ_API_KEY: "gsk-secret-value",
+  GROQ_MODEL: "zai-org/GLM-5.3-Flash",
 };
 
 /** Fake gh: records every invocation without touching the real CLI. */
@@ -28,7 +28,7 @@ describe("planSecrets", () => {
   it("lists what would be set without leaking values", () => {
     const plan = planSecrets(FULL_ENV);
 
-    expect(plan.set).toEqual(["HUB_USER", "GITHUB_TOKEN", "LINKEDIN_ACCESS_TOKEN", "LINKEDIN_AUTHOR_URN", "HUGGINGFACE_API_KEY", "HF_MODEL"]);
+    expect(plan.set).toEqual(["HUB_USER", "GITHUB_TOKEN", "LINKEDIN_ACCESS_TOKEN", "LINKEDIN_AUTHOR_URN", "GROQ_API_KEY", "GROQ_MODEL"]);
     expect(JSON.stringify(plan)).not.toContain("li-secret-value");
     expect(JSON.stringify(plan)).not.toContain("gh-secret-value");
   });
@@ -118,12 +118,12 @@ describe("syncSecrets", () => {
   });
 
   it("reports which secret failed without echoing the value", async () => {
-    const { runCmd } = fakeGh({ failOn: "HUGGINGFACE_API_KEY" });
+    const { runCmd } = fakeGh({ failOn: "GROQ_API_KEY" });
     const result = await syncSecrets({ env: FULL_ENV, dryRun: false, runCmd });
 
     expect(result.ok).toBe(false);
-    expect(result.failedSecret).toBe("HUGGINGFACE_API_KEY");
-    expect(formatSyncResult(result)).not.toContain("hf-secret-value");
+    expect(result.failedSecret).toBe("GROQ_API_KEY");
+    expect(formatSyncResult(result)).not.toContain("gsk-secret-value");
   });
 
   it("skips optional secrets that have no value", async () => {

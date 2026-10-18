@@ -6,12 +6,12 @@ export const REQUIRED_SECRETS = [
   "GITHUB_TOKEN",
   "LINKEDIN_ACCESS_TOKEN",
   "LINKEDIN_AUTHOR_URN",
-  "HUGGINGFACE_API_KEY",
+  "GROQ_API_KEY",
 ];
 
 /** Optional secrets: only pushed when the user actually has a value for them. */
 const OPTIONAL_SECRETS = [
-  "HF_MODEL",
+  "GROQ_MODEL",
   "LINKEDIN_REFRESH_TOKEN",
   "LINKEDIN_CLIENT_ID",
   "LINKEDIN_CLIENT_SECRET",

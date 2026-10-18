@@ -1,11 +1,11 @@
 import getSinceDate from "./getSinceDate.js";
 import {
   GIT_HEADERS,
-  HF_HEADERS,
+  GROQ_HEADERS,
   LINKEDIN_HEADERS,
   LINKEDIN_AUTHOR,
   HUB_USER,
-  HF_MODEL,
+  GROQ_MODEL,
 } from "./consts.js";
 import { scoreCommits, rankCommits } from "./commitScoring.js";
 import {
@@ -21,10 +21,10 @@ const DRY_RUN = process.argv.includes("--dry-run");
 const now = new Date(Date.now());
 const since = getSinceDate(24, now);
 
-// Helper: call Hugging Face text-generation API
+// Helper: call the Groq chat completions API (OpenAI-compatible)
 async function generateSummary(prompt) {
-  const url = "https://router.huggingface.co/v1/chat/completions";
-  const model = HF_MODEL;
+  const url = "https://api.groq.com/openai/v1/chat/completions";
+  const model = GROQ_MODEL;
 
   const payload = {
     model,
@@ -44,7 +44,7 @@ async function generateSummary(prompt) {
   // A POST is never retried here: a blind retry risks publishing twice.
   const data = await requestJson(
     url,
-    { method: "POST", headers: HF_HEADERS, body: JSON.stringify(payload), retries: 0 }
+    { method: "POST", headers: GROQ_HEADERS, body: JSON.stringify(payload), retries: 0 }
   );
 
   // Chat completion response: choices[0].message.content
@@ -52,13 +52,8 @@ async function generateSummary(prompt) {
     return data.choices[0].message.content;
   }
 
-  // Fallbacks for older response shapes
-  if (Array.isArray(data) && data[0]?.generated_text)
-    return data[0].generated_text;
-  if (data.generated_text) return data.generated_text;
-
   throw new Error(
-    `Unexpected Hugging Face response shape: ${JSON.stringify(data)}`
+    `Unexpected Groq response shape: ${JSON.stringify(data)}`
   );
 }
 
