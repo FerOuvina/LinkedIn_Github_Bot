@@ -53,6 +53,43 @@ describe("hosted setup view", () => {
   });
 });
 
+describe("no dead links", () => {
+  const components = ["Home.jsx", "StaticSetup.jsx", "Guide.jsx", "GettingStarted.jsx"];
+
+  it.each(components)("%s has no placeholder href", (file) => {
+    const source = readFileSync(path.join(WEB, "components", file), "utf8");
+    // href="#" looks like a link and goes nowhere.
+    expect(source).not.toMatch(/href="#"/);
+  });
+
+  it.each(components)("%s links nowhere else dead", (file) => {
+    const source = readFileSync(path.join(WEB, "components", file), "utf8");
+    const routes = ["/", "/guide", "/getting-started"];
+    const internal = [...source.matchAll(/(?:href|to)="(\/[^"]*)"/g)].map((m) => m[1]);
+
+    for (const url of internal) {
+      const isRoute = routes.some((r) => url === r || url.startsWith(`${r}/`));
+      // Anything else must go through sitePath/docsUrl, which handle the base.
+      const usesBase = source.includes("sitePath") || source.includes("docsUrl");
+      expect(isRoute || usesBase, `${file} links to ${url} with no base`).toBe(true);
+    }
+  });
+
+  it("the read-only header links somewhere useful", () => {
+    const source = readFileSync(path.join(WEB, "components", "StaticSetup.jsx"), "utf8");
+    // It used to link to /getting-started, which is the read-only page itself.
+    expect(source).not.toMatch(/(?:href|to)="\/getting-started"/);
+    expect(source).toContain("github.com/FerOuvina/LinkedIn_Github_Bot");
+  });
+
+  it("the footer links to real destinations", () => {
+    const source = readFileSync(path.join(WEB, "components", "Home.jsx"), "utf8");
+    expect(source).toContain('sitePath("/privacy-policy/")');
+    expect(source).toContain('href="/guide"');
+    expect(source).toContain("LICENSE");
+  });
+});
+
 describe("mode selection", () => {
   const app = readFileSync(path.join(WEB, "App.jsx"), "utf8");
   const mode = readFileSync(path.join(WEB, "context", "ModeContext.jsx"), "utf8");

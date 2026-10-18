@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { Link } from "wouter";
+import { sitePath } from "../lib/api.js";
 
 export default function GettingStarted() {
   const [darkMode, setDarkMode] = useState(false);
@@ -259,15 +260,23 @@ export default function GettingStarted() {
           </div>
 
           <div className="flex gap-6 text-sm text-slate-500">
-            <a href="#" className="hover:text-primary">
+            <a
+              href={sitePath("/privacy-policy/")}
+              className="hover:text-primary"
+            >
               Privacy
             </a>
-            <a href="#" className="hover:text-primary">
+            <a
+              href="https://github.com/FerOuvina/LinkedIn_Github_Bot/blob/main/LICENSE"
+              target="_blank"
+              rel="noreferrer"
+              className="hover:text-primary"
+            >
               Terms
             </a>
-            <a href="#" className="hover:text-primary">
+            <Link href="/guide" className="hover:text-primary">
               Documentation
-            </a>
+            </Link>
           </div>
 
           <a
