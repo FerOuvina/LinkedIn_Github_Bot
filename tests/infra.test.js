@@ -93,20 +93,16 @@ describe("workflow permissions", () => {
 });
 
 describe("pages deployment", () => {
-  it("publishes a staged directory, not the whole repository", () => {
+  // The deployment rules live in tests/pages.test.js.
+
+  it("triggers on the files the site is built from", () => {
+    expect(pages).toContain('- "web/**"');
+    expect(pages).toContain('- "docs/**"');
+  });
+
+  it("deploys a staged directory, not the whole repository", () => {
     expect(pages).toContain('path: "_site"');
     expect(pages).not.toContain('path: "."');
-  });
-
-  it("stages only the files the site actually loads", () => {
-    expect(pages).toMatch(/cp index\.html privacy-policy\.md _site\//);
-  });
-
-  it("triggers only on real site files", () => {
-    expect(pages).toContain('- "index.html"');
-    expect(pages).toContain('- "privacy-policy.md"');
-    expect(pages).not.toContain("style.css");
-    expect(pages).not.toContain("assets/");
   });
 });
 

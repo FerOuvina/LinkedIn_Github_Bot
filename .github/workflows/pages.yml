@@ -3,8 +3,12 @@ name: Deploy GitHub Pages
 on:
   push:
     paths:
+      - "web/**"
+      - "scripts/webBase.js"
+      - "docs/**"
       - "index.html"
       - "privacy-policy.md"
+  workflow_dispatch:
 
 permissions:
   contents: read
@@ -26,12 +30,39 @@ jobs:
       - name: Setup Pages
         uses: actions/configure-pages@v4
 
-      # Stage only the site assets instead of publishing the whole repository
-      # (package.json, scripts/, tests/ and node_modules were included before).
-      - name: Stage site files
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version-file: ".nvmrc"
+          cache: "npm"
+          cache-dependency-path: web/package-lock.json
+
+      # Built here rather than using the committed dist/, so a stale build can
+      # never be what gets deployed.
+      - name: Install web dependencies
+        run: npm ci
+        working-directory: web
+
+      - name: Build the app
+        run: npm run build
+        working-directory: web
+
+      - name: Assemble the site
         run: |
           mkdir -p _site
-          cp index.html privacy-policy.md _site/
+          cp -r web/dist/. _site/
+
+          # The app links to the guides, so they ship with it and work offline.
+          mkdir -p _site/docs
+          cp -r docs/. _site/docs/
+
+          # The privacy policy keeps its own page at /privacy-policy/.
+          mkdir -p _site/privacy-policy
+          cp index.html _site/privacy-policy/index.html
+          cp privacy-policy.md _site/privacy-policy/
+
+          # Never publish the repository's own files.
+          rm -rf _site/src _site/scripts _site/tests _site/node_modules _site/package.json
 
       - name: Upload Pages artifact
         uses: actions/upload-pages-artifact@v3

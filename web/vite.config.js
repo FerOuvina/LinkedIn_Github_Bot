@@ -1,9 +1,14 @@
 import { defineConfig } from "vite";
 import react from "@vitejs/plugin-react";
 
+// Shared with the Node server so the build and the server can't disagree about
+// the path the app is served from.
+import { WEB_BASE } from "../scripts/webBase.js";
+
 const API_TARGET = "http://127.0.0.1:4319";
 
 export default defineConfig({
+  base: WEB_BASE,
   plugins: [react()],
   // In production the Node server serves dist/ and the API from one origin,
   // so only the dev server needs to proxy.

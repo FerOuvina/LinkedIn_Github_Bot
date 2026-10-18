@@ -8,6 +8,7 @@ import { randomBytes, timingSafeEqual } from "node:crypto";
 import { preflight } from "./preflight.js";
 import { syncSecrets, formatSyncResult } from "./syncSecrets.js";
 import { writeEnvFile } from "./envFile.js";
+import { stripBase, WEB_BASE } from "./webBase.js";
 import { envMissing } from "./validations.js";
 
 const JSON_HEADERS = { "Content-Type": "application/json; charset=utf-8" };
@@ -110,6 +111,7 @@ export function createSetupServer({
   dryRunImpl,
   ghCheckImpl,
   docsDir,
+  webBase = WEB_BASE,
 } = {}) {
   const state = createState();
   /** Tokens waiting to be collected by the wizard. In memory only. */
@@ -311,7 +313,13 @@ export function createSetupServer({
   }
 
   const server = createServer(async (req, res) => {
-    const url = new URL(req.url, `http://${host}:${port}`);
+    const rawUrl = new URL(req.url, `http://${host}:${port}`);
+    // The built app may be mounted under a base path (Pages) or at the root
+    // (local). Both must work, so strip the prefix if it is present.
+    const url = new URL(
+      stripBase(rawUrl.pathname, webBase) + rawUrl.search,
+      `http://${host}:${port}`
+    );
     const handler = routes[`${req.method} ${url.pathname}`];
 
     if (!handler) {
