@@ -4,8 +4,17 @@ on:
   push:
     paths:
       - "index.html"
-      - "style.css"
-      - "assets/**"
+      - "privacy-policy.md"
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+# Never let a superseded deploy linger.
+concurrency:
+  group: "pages"
+  cancel-in-progress: true
 
 jobs:
   deploy:
@@ -17,10 +26,17 @@ jobs:
       - name: Setup Pages
         uses: actions/configure-pages@v4
 
+      # Stage only the site assets instead of publishing the whole repository
+      # (package.json, scripts/, tests/ and node_modules were included before).
+      - name: Stage site files
+        run: |
+          mkdir -p _site
+          cp index.html privacy-policy.md _site/
+
       - name: Upload Pages artifact
         uses: actions/upload-pages-artifact@v3
         with:
-          path: "."
+          path: "_site"
 
       - name: Deploy
         uses: actions/deploy-pages@v4

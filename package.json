@@ -6,11 +6,15 @@
   "name": "linkedin_github_bot",
   "version": "1.0.0",
   "description": "This project demonstrates how to automate LinkedIn posts using GitHub Actions and the LinkedIn API.",
-  "main": "dailySummary.js",
+  "main": "scripts/dailySummary.js",
+  "engines": {
+    "node": ">=20"
+  },
   "devDependencies": {
     "vitest": "^4.0.16"
   },
   "scripts": {
+    "start": "node ./scripts/dailySummary.js",
     "test": "vitest",
     "test:run": "vitest run"
   },

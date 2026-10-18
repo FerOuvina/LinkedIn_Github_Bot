@@ -6,6 +6,13 @@ import {
   LINKEDIN_AUTHOR,
   HUB_USER,
 } from "./consts.js";
+import { scoreCommits, rankCommits } from "./commitScoring.js";
+import {
+  fetchOwnedRepos,
+  fetchRepoActivity,
+  topActiveRepos,
+} from "./github.js";
+import { requestJson } from "./http.js";
 
 const DRY_RUN = process.argv.includes("--dry-run");
 
@@ -16,7 +23,7 @@ const since = getSinceDate(24, now);
 // Helper: call Hugging Face text-generation API
 async function generateSummary(prompt) {
   const url = "https://router.huggingface.co/v1/chat/completions";
-  const model = "zai-org/GLM-4.7";
+  const model = "jialinyyzz/humanizer";
 
   const payload = {
     model,
@@ -33,14 +40,11 @@ async function generateSummary(prompt) {
     ],
   };
 
-  const res = await fetch(url, {
-    method: "POST",
-    headers: HF_HEADERS,
-    body: JSON.stringify(payload),
-  });
-
-  const data = await res.json();
-  if (!res.ok) throw new Error(data.error || JSON.stringify(data));
+  // A POST is never retried here: a blind retry risks publishing twice.
+  const data = await requestJson(
+    url,
+    { method: "POST", headers: HF_HEADERS, body: JSON.stringify(payload), retries: 0 }
+  );
 
   // Chat completion response: choices[0].message.content
   if (Array.isArray(data.choices) && data.choices[0]?.message?.content) {
@@ -57,93 +61,42 @@ async function generateSummary(prompt) {
   );
 }
 
-// Main Script
+/**
+ * Build and publish the daily post.
+ * @returns {Promise<"published"|"dry-run"|"no-activity"|"no-significant-commits">}
+ */
 export default async function run() {
-  // Get repo activity
-  const ownedRepos = await fetch(
-    `https://api.github.com/users/${HUB_USER}/repos?per_page=30`,
-    { headers: GIT_HEADERS }
-  );
-  const repos = await ownedRepos.json();
-  const repoActivity = {};
-
-  for (const repo of repos) {
-    const commitsRes = await fetch(
-      `https://api.github.com/repos/${repo.owner.login}/${
-        repo.name
-      }/commits?since=${since.toISOString()}`,
-      { headers: GIT_HEADERS }
-    );
-
-    const commits = await commitsRes.json();
-    if (!Array.isArray(commits) || commits.length === 0) continue;
-
-    repoActivity[`${repo.owner.login}/${repo.name}`] = commits.length;
-  }
+  // Get repo activity — each repo's commits are fetched exactly once
+  const repos = await fetchOwnedRepos(HUB_USER, { headers: GIT_HEADERS });
+  const activity = await fetchRepoActivity(repos, {
+    since,
+    headers: GIT_HEADERS,
+  });
 
   // Get last 3 repos with activity and check if there was any activity
-  const topRepos = Object.entries(repoActivity)
-    .sort((a, b) => b[1] - a[1])
-    .slice(0, 3)
-    .map(([repo]) => repo);
+  const topRepos = topActiveRepos(activity, 3);
 
   if (topRepos.length === 0) {
     console.log("No commits today — nothing to post.");
-    return;
+    return "no-activity";
   }
 
   // Check for non-important keywords and filter commits based on them
-  const SCORE_RULES = [
-    { match: /^feat:/i, score: 5 },
-    { match: /^fix:/i, score: 4 },
-    { match: /\b(add|implement|support)\b/i, score: 2 },
-
-    { match: /\btest(s)?\b/i, score: -1 },
-    { match: /\b(chore|lint|format|ci|docs|merge)\b/i, score: -2 },
-  ];
-
-  function scoreCommit(message) {
-    let score = 0;
-
-    for (const rule of SCORE_RULES) {
-      if (rule.match.test(message)) {
-        score += rule.score;
-      }
-    }
-
-    return score;
-  }
-
   const filteredCommits = [];
 
-  for (const fullRepo of topRepos) {
-    const [owner, repo] = fullRepo.split("/");
-    const res = await fetch(
-      `https://api.github.com/repos/${owner}/${repo}/commits?since=${since.toISOString()}`,
-      { headers: GIT_HEADERS }
+  for (const { fullName, messages } of topRepos) {
+    const [, repo] = fullName.split("/");
+
+    filteredCommits.push(
+      ...rankCommits(
+        scoreCommits(messages.map((message) => ({ repo, message })))
+      )
     );
-    const commitsData = await res.json();
-    const commits = Array.isArray(commitsData) ? commitsData : [];
-
-    const scoredCommits = commits
-      .map((c) => {
-        const message = c.commit?.message?.split("\n")[0] ?? "";
-        return {
-          repo,
-          message,
-          score: scoreCommit(message),
-        };
-      })
-      .filter((c) => c.score >= 1) // threshold
-      .sort((a, b) => b.score - a.score)
-      .slice(0, 4);
-
-    filteredCommits.push(...scoredCommits);
   }
 
   if (filteredCommits.length === 0) {
     console.log("No significant commits to post today.");
-    return;
+    return "no-significant-commits";
   }
 
   // Build prompt for AI summary
@@ -160,13 +113,13 @@ export default async function run() {
 
   const aiSummary = await generateSummary(prompt);
 
-  const postText = `${aiSummary}\n\n📝 This post was automated using the LinkedIn API, if you wanna learn more about it check out my repository on Github.\n🔗 My GitHub: https://github.com/${HUB_USER}\n🔗 My Portfolio: https://ouvina-fernando.vercel.app`;
+  const postText = `${aiSummary}\n\n📝 This post was automated using the LinkedIn API, if you want to learn more about it, check out my repository on Github:\n🔗 My GitHub: https://github.com/${HUB_USER}\n🔗 My Portfolio: https://ouvina-fernando.vercel.app`;
 
   // Dry run for testing
   if (DRY_RUN) {
     console.log("🧪 DRY RUN — LinkedIn post would be:\n");
     console.log(postText);
-    return;
+    return "dry-run";
   }
 
   const body = {
@@ -181,11 +134,19 @@ export default async function run() {
     visibility: { "com.linkedin.ugc.MemberNetworkVisibility": "PUBLIC" },
   };
 
-  const res = await fetch("https://api.linkedin.com/v2/ugcPosts", {
-    method: "POST",
-    headers: LINKEDIN_HEADERS,
-    body: JSON.stringify(body),
-  });
+  // Never retried: LinkedIn's ugcPosts POST is not idempotent, so a retry after
+  // a timeout could publish the post twice.
+  await requestJson(
+    "https://api.linkedin.com/v2/ugcPosts",
+    {
+      method: "POST",
+      headers: LINKEDIN_HEADERS,
+      body: JSON.stringify(body),
+      retries: 0,
+    }
+  );
 
-  console.log("LinkedIn status:", res.status);
+  console.log("LinkedIn post published.");
+
+  return "published";
 }
