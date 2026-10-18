@@ -5,21 +5,27 @@ on:
     - cron: "0 18 * * *"
   workflow_dispatch:
 
+permissions:
+  contents: read
+
 jobs:
   post-summary:
     runs-on: ubuntu-latest
+    # Every fetch has its own timeout, so the job should never need hours.
+    timeout-minutes: 15
 
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
 
       - name: Setup Node.js
-        uses: actions/setup-node@v3
+        uses: actions/setup-node@v4
         with:
-          node-version: "24"
+          node-version-file: ".nvmrc"
+          cache: "npm"
 
       - name: Install dependencies
-        run: npm install
+        run: npm ci
 
       - name: Run Daily Summary Script (Live)
         env:
