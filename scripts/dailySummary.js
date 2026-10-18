@@ -1,5 +1,6 @@
 import { pathToFileURL } from "node:url";
 import { envMissing } from "./validations.js";
+import { preflight, formatResults } from "./preflight.js";
 import run from "./mainScript.js";
 
 /**
@@ -12,6 +13,16 @@ import run from "./mainScript.js";
 export async function main() {
   if (envMissing.length > 0) {
     throw new Error(`Missing env variables: ${envMissing.join(", ")}`);
+  }
+
+  // Validate every credential before posting anything, so one run reports all
+  // the broken ones instead of failing on them one at a time.
+  const health = await preflight();
+  console.log(formatResults(health));
+
+  if (!health.ok) {
+    const failed = health.results.filter((r) => !r.ok).map((r) => r.name);
+    throw new Error(`Credential check failed: ${failed.join(", ")}`);
   }
 
   const result = await run();

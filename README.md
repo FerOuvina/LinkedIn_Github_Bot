@@ -29,10 +29,46 @@ You need Node 24 (see `.nvmrc`) and a `.env` file with:
 | `LINKEDIN_ACCESS_TOKEN` | LinkedIn OAuth token that permits posting (`ugcPosts`) |
 | `LINKEDIN_AUTHOR_URN` | Your `urn:li:person:...` identifier |
 | `HUGGINGFACE_API_KEY` | Key for the LLM |
+| `HF_MODEL` | Optional. Defaults to `zai-org/GLM-5.3-Flash` |
 
-Two throwaway helper scripts — `scripts/getLinkedInToken.js` and
-`scripts/getLinkedInUser.js` — walk through the LinkedIn OAuth flow and print
-your author URN. They're gitignored; delete them once you have the values.
+To get a LinkedIn token, follow **[docs/LINKEDIN_SETUP.md](docs/LINKEDIN_SETUP.md)**,
+then run:
+
+```bash
+npm run auth:linkedin
+```
+
+It opens your browser, you approve the app, and it prints the access token and
+author URN to copy into `.env` and into GitHub Secrets. Most apps don't get a
+refresh token — LinkedIn only issues those to approved partner apps — so plan to
+re-run this command every ~60 days.
+
+### Check your credentials
+
+```bash
+npm run preflight
+```
+
+Validates every credential before the bot does any work, and reports all the
+broken ones at once instead of failing on them one at a time:
+
+```
+❌ Some credentials need attention:
+  ✅ GitHub: authenticated as yourUser
+  ❌ LinkedIn: GET https://api.linkedin.com/v2/userinfo failed with 401: {"code":"EXPIRED_ACCESS_TOKEN", ...}
+  ✅ Hugging Face: model "zai-org/GLM-5.3-Flash" is available
+```
+
+The same check runs automatically before every scheduled post.
+
+**LinkedIn tokens expire roughly every 60 days.** That's a property of their
+OAuth rather than a bug here. Re-running `npm run auth:linkedin` is quick — the
+consent screen is skipped while you're still signed in — then update the
+secrets. If your app *was* issued a refresh token you can instead run
+`npm run auth:linkedin -- --refresh` with no browser at all.
+
+Run `npm run preflight` whenever a scheduled run starts failing — it names the
+broken credential.
 
 ### Local run
 
