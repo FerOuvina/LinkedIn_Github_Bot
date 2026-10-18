@@ -15,7 +15,9 @@
   },
   "scripts": {
     "start": "node ./scripts/dailySummary.js",
+    "setup": "node ./scripts/setupServer.js",
     "preflight": "node ./scripts/checkCredentials.js",
+    "sync:secrets": "node ./scripts/syncSecretsCli.js",
     "auth:linkedin": "node ./scripts/linkedinAuth.js",
     "test": "vitest",
     "test:run": "vitest run"

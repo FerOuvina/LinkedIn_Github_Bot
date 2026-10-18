@@ -29,7 +29,7 @@ You need Node 24 (see `.nvmrc`) and a `.env` file with:
 | `LINKEDIN_ACCESS_TOKEN` | LinkedIn OAuth token that permits posting (`ugcPosts`) |
 | `LINKEDIN_AUTHOR_URN` | Your `urn:li:person:...` identifier |
 | `HUGGINGFACE_API_KEY` | Key for the LLM |
-| `HF_MODEL` | Optional. Defaults to `zai-org/GLM-5.3-Flash` |
+| `HF_MODEL` | Optional. Defaults to the model in `scripts/consts.js` |
 
 To get a LinkedIn token, follow **[docs/LINKEDIN_SETUP.md](docs/LINKEDIN_SETUP.md)**,
 then run:
@@ -56,7 +56,7 @@ broken ones at once instead of failing on them one at a time:
 ❌ Some credentials need attention:
   ✅ GitHub: authenticated as yourUser
   ❌ LinkedIn: GET https://api.linkedin.com/v2/userinfo failed with 401: {"code":"EXPIRED_ACCESS_TOKEN", ...}
-  ✅ Hugging Face: model "zai-org/GLM-5.3-Flash" is available
+  ✅ Hugging Face: model "<configured model>" is available
 ```
 
 The same check runs automatically before every scheduled post.
