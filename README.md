@@ -31,6 +31,11 @@ You need Node 24 (see `.nvmrc`) and a `.env` file with:
 | `GROQ_API_KEY` | Key for the LLM ([console.groq.com](https://console.groq.com)) |
 | `GROQ_MODEL` | Optional. Defaults to the model in `scripts/consts.js` |
 
+Pick a **chat** model. Groq's catalogue mixes in models that can't write prose —
+`llama-prompt-guard-*` and `*-safeguard-*` are safety classifiers, and
+`whisper-*` is speech-to-text. Any of them will pass a naive availability check
+and then fail on the real request.
+
 To get a LinkedIn token, follow **[docs/LINKEDIN_SETUP.md](docs/LINKEDIN_SETUP.md)**,
 then run:
 

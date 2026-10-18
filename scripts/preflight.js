@@ -1,12 +1,11 @@
 import { requestJson } from "./http.js";
+import { probeModel, GROQ_API } from "./llm.js";
 import {
   GIT_HEADERS,
   GROQ_HEADERS,
   GROQ_MODEL,
   LINKEDIN_HEADERS,
 } from "./consts.js";
-
-const GROQ_API = "https://api.groq.com/openai/v1";
 
 /** One check never blocks the others: the point is to report every problem at once. */
 async function check(name, fn) {
@@ -54,19 +53,7 @@ async function checkGroq({ fetchImpl, model = GROQ_MODEL }) {
   }
 
   try {
-    await requestJson(
-      `${GROQ_API}/chat/completions`,
-      {
-        method: "POST",
-        headers: GROQ_HEADERS,
-        body: JSON.stringify({
-          model,
-          max_tokens: 1,
-          messages: [{ role: "user", content: "ping" }],
-        }),
-      },
-      { fetchImpl, retries: 0 }
-    );
+    await probeModel({ fetchImpl, model });
     return `model "${model}" is available and the key works`;
   } catch (err) {
     // Only auth and billing failures are conclusive. Anything else (an

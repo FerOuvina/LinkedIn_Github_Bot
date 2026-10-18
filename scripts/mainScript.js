@@ -1,11 +1,9 @@
 import getSinceDate from "./getSinceDate.js";
 import {
   GIT_HEADERS,
-  GROQ_HEADERS,
   LINKEDIN_HEADERS,
   LINKEDIN_AUTHOR,
   HUB_USER,
-  GROQ_MODEL,
 } from "./consts.js";
 import { scoreCommits, rankCommits } from "./commitScoring.js";
 import {
@@ -14,6 +12,7 @@ import {
   topActiveRepos,
 } from "./github.js";
 import { requestJson } from "./http.js";
+import { summarize } from "./llm.js";
 
 const DRY_RUN = process.argv.includes("--dry-run");
 
@@ -21,41 +20,7 @@ const DRY_RUN = process.argv.includes("--dry-run");
 const now = new Date(Date.now());
 const since = getSinceDate(24, now);
 
-// Helper: call the Groq chat completions API (OpenAI-compatible)
-async function generateSummary(prompt) {
-  const url = "https://api.groq.com/openai/v1/chat/completions";
-  const model = GROQ_MODEL;
-
-  const payload = {
-    model,
-    messages: [
-      {
-        role: "system",
-        content:
-          "Start the post with normal greetings, something nice or similar but short, respond ONLY with the LinkedIn post text. Do not add any preamble, explanation, or labels, and DON'T forget to add a space after every emoji.",
-      },
-      {
-        role: "user",
-        content: prompt,
-      },
-    ],
-  };
-
-  // A POST is never retried here: a blind retry risks publishing twice.
-  const data = await requestJson(
-    url,
-    { method: "POST", headers: GROQ_HEADERS, body: JSON.stringify(payload), retries: 0 }
-  );
-
-  // Chat completion response: choices[0].message.content
-  if (Array.isArray(data.choices) && data.choices[0]?.message?.content) {
-    return data.choices[0].message.content;
-  }
-
-  throw new Error(
-    `Unexpected Groq response shape: ${JSON.stringify(data)}`
-  );
-}
+// Groq call lives in llm.js so the preflight probe can reuse the same shape.
 
 /**
  * Build and publish the daily post.
@@ -107,7 +72,7 @@ export default async function run() {
     Commits:
     ${commitsText}`;
 
-  const aiSummary = await generateSummary(prompt);
+  const aiSummary = await summarize(prompt);
 
   const postText = `${aiSummary}\n\n📝 This post was automated using the LinkedIn API, if you want to learn more about it, check out my repository on Github:\n🔗 My GitHub: https://github.com/${HUB_USER}\n🔗 My Portfolio: https://ouvina-fernando.vercel.app`;
 
