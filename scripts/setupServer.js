@@ -33,27 +33,77 @@ async function readBody(req, { limit = 1_000_000 } = {}) {
 }
 
 /** Is the GitHub CLI present and signed in? Needed to write Actions secrets. */
-function checkGh() {
+/** Where the GitHub CLI lands on Windows, for when PATH has not been refreshed. */
+function ghCandidates() {
+  const names = ["gh"];
+  if (process.platform !== "win32") return names;
+
+  const roots = [
+    process.env.ProgramFiles,
+    process.env["ProgramFiles(x86)"],
+    process.env.LOCALAPPDATA,
+  ].filter(Boolean);
+
+  for (const root of roots) {
+    names.push(path.join(root, "GitHub CLI", "gh.exe"));
+    names.push(path.join(root, "Programs", "GitHub CLI", "gh.exe"));
+    names.push(path.join(root, "Microsoft", "WinGet", "Links", "gh.exe"));
+  }
+  return names;
+}
+
+/** Run a command, returning its stdout, or null if it could not run or failed. */
+function tryRun(cmd, args) {
   return new Promise((resolve) => {
-    const child = spawn("gh", ["--version"], { stdio: ["ignore", "pipe", "pipe"] });
+    const child = spawn(cmd, args, { stdio: ["ignore", "pipe", "pipe"] });
     let out = "";
     child.stdout.on("data", (d) => (out += d));
-
-    child.on("error", () => resolve({ installed: false, authenticated: false }));
-    child.on("close", async (code) => {
-      if (code !== 0) {
-        resolve({ installed: false, authenticated: false });
-        return;
-      }
-      const auth = spawn("gh", ["auth", "status"], { stdio: ["ignore", "pipe", "pipe"] });
-      let authOut = "";
-      auth.stdout.on("data", (d) => (authOut += d));
-      auth.on("error", () => resolve({ installed: true, authenticated: false }));
-      auth.on("close", (authCode) =>
-        resolve({ installed: true, authenticated: authCode === 0, version: out.split("\n")[0] })
-      );
-    });
+    child.on("error", () => resolve(null));
+    child.on("close", (code) => resolve(code === 0 ? out : null));
   });
+}
+
+/**
+ * Is the GitHub CLI present and signed in?
+ *
+ * A CLI installed while the terminal was already open is on disk but not on
+ * this process's PATH, which looks exactly like "not installed". So fall back
+ * to the usual install locations and report that case separately, since the
+ * fix is to restart the terminal rather than to install anything.
+ */
+export async function checkGh({
+  run = tryRun,
+  exists = existsSync,
+  candidates = ghCandidates(),
+} = {}) {
+  const [onPath, ...fallbacks] = candidates;
+
+  let stdout = await run(onPath, ["--version"]);
+  let command = onPath;
+  let via = "path";
+
+  if (!stdout) {
+    for (const candidate of fallbacks) {
+      if (!exists(candidate)) continue;
+      const out = await run(candidate, ["--version"]);
+      if (out) {
+        stdout = out;
+        command = candidate;
+        via = "filesystem";
+        break;
+      }
+    }
+  }
+
+  if (!stdout) return { installed: false, authenticated: false, onPath: true };
+
+  return {
+    installed: true,
+    authenticated: Boolean(await run(command, ["auth", "status"])),
+    onPath: via === "path",
+    version: stdout.split("\n")[0].trim(),
+    ...(via === "path" ? {} : { path: command }),
+  };
 }
 
 /** Run the actual bot in dry-run mode so the wizard tests the real path. */
@@ -169,7 +219,7 @@ export function createSetupServer({
         node: process.version,
         hasWebUi: existsSync(path.join(resolvedWebDir, "index.html")),
         envMissing,
-        gh: await (ghCheckImpl ?? checkGh)(),
+        gh: await (ghCheckImpl ? ghCheckImpl() : checkGh()),
       });
     },
 

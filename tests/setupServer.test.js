@@ -72,6 +72,25 @@ describe("GET /api/health", () => {
     expect(body.ok).toBe(true); // the server itself is healthy
   });
 
+  it("reports an installed CLI that is not on PATH separately", async () => {
+    // A CLI installed while the terminal was open looks identical to a
+    // missing one unless we look past PATH.
+    const ghCheckImpl = vi.fn().mockResolvedValue({
+      installed: true,
+      authenticated: true,
+      onPath: false,
+      version: "gh version 2.0.0",
+      path: "C:\\Program Files\\GitHub CLI\\gh.exe",
+    });
+
+    const s = await start({ ghCheckImpl });
+    const body = await (await s.get("/api/health")).json();
+
+    expect(body.gh.installed).toBe(true);
+    expect(body.gh.onPath).toBe(false);
+    expect(body.gh.path).toContain("gh.exe");
+  });
+
   it("reports ok, the node version and missing env names", async () => {
     const s = await start();
     const res = await s.get("/api/health");
