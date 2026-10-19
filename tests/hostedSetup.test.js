@@ -47,6 +47,11 @@ describe("hosted setup view", () => {
     expect(source).not.toMatch(/Save credentials<\/button>/);
   });
 
+  it("keeps the command on one line", () => {
+    const banner = readFileSync(path.join(WEB, "components", "HostedBanner.jsx"), "utf8");
+    expect(banner).toContain("whitespace-nowrap");
+  });
+
   it("explains why it is read-only", () => {
     expect(source).toContain("read-only");
     expect(source).toContain("npm run setup");

@@ -124,15 +124,15 @@ export default function Home() {
       </header>
 
       {/* ── Ticker ─────────────────────────────────────────────── */}
-      <div className="overflow-hidden border-b-2 border-edge bg-primary py-2">
-        <div className="flex w-max animate-marquee">
+      <div className="overflow-hidden border-b-2 border-edge bg-primary py-1.5 leading-none sm:py-2">
+        <div className="flex w-max animate-marquee will-change-transform">
           {[...TICKER, ...TICKER].map((item, i) => (
             <span
               key={`${item}-${i}`}
-              className="ff-mono flex items-center whitespace-nowrap px-6 text-[11px] text-void"
+              className="ff-mono flex items-center whitespace-nowrap px-4 text-[10px] text-void sm:px-6 sm:text-[11px]"
             >
               {item}
-              <span className="ml-6 text-void/50">◆</span>
+              <span className="ml-4 text-void/50 sm:ml-6">◆</span>
             </span>
           ))}
         </div>

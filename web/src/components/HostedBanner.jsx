@@ -34,7 +34,7 @@ export default function HostedBanner() {
               You are viewing the hosted copy, so the setup wizard is read-only.
               The checks, OAuth and credential saving all run on your own
               machine. Clone the repository and run{" "}
-              <code className="border border-acid/40 bg-void px-1.5 py-0.5 font-mono text-acid">
+              <code className="whitespace-nowrap border border-acid/40 bg-void px-1.5 py-0.5 font-mono text-acid">
                 npm run setup
               </code>{" "}
               to use it.

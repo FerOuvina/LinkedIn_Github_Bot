@@ -9,6 +9,8 @@
 
   body {
     @apply bg-void text-bone font-body antialiased;
+    /* The marquee is wider than the screen by design. */
+    overflow-x: hidden;
   }
 
   ::selection {
