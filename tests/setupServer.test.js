@@ -3,6 +3,7 @@ import { readFileSync } from "node:fs";
 import { mkdtempSync, mkdirSync, writeFileSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import path from "node:path";
+import { WEB_BASE } from "../scripts/webBase.js";
 import { createSetupServer } from "../scripts/setupServer.js";
 
 const servers = [];
@@ -272,9 +273,9 @@ describe("static serving", () => {
 
   afterEach(() => rmSync(dir, { recursive: true, force: true }));
 
-  it("serves the built wizard at the root", async () => {
+  it("serves the built wizard at the base path", async () => {
     const s = await start({ webDir: dir });
-    const res = await s.get("/");
+    const res = await s.get(WEB_BASE);
 
     expect(res.status).toBe(200);
     expect(res.headers.get("content-type")).toContain("text/html");
@@ -302,6 +303,31 @@ describe("static serving", () => {
       const body = await (await s.get(path)).text();
       expect(body).not.toContain("dotenv/config");
     }
+  });
+
+  it("redirects the root to the base path, or the page renders blank", async () => {
+    // The build targets /LinkedIn_Github_Boot/, so at the bare root the router
+    // matches nothing and the page is blank.
+    const s = await start({ webDir: dir });
+    const res = await s.get("/", { redirect: "manual" });
+
+    expect(res.status).toBe(302);
+    expect(res.headers.get("location")).toBe(WEB_BASE);
+  });
+
+  it("serves the app at the base path", async () => {
+    const s = await start({ webDir: dir });
+    const res = await s.get(`${WEB_BASE}`);
+
+    expect(res.status).toBe(200);
+    expect(await res.text()).toContain("wizard");
+  });
+
+  it("does not redirect when the app is built for a domain root", async () => {
+    const s = await start({ webDir: dir, webBase: "/" });
+    const res = await s.get("/", { redirect: "manual" });
+
+    expect(res.status).toBe(200);
   });
 
   it("serves the app shell for client-side routes", async () => {
