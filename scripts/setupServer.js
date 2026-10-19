@@ -10,6 +10,7 @@ import { syncSecrets, formatSyncResult } from "./syncSecrets.js";
 import { writeEnvFile } from "./envFile.js";
 import { stripBase, WEB_BASE } from "./webBase.js";
 import { envMissing } from "./validations.js";
+import { authorizeUrl, exchange } from "./linkedinAuth.js";
 
 const JSON_HEADERS = { "Content-Type": "application/json; charset=utf-8" };
 
@@ -149,6 +150,35 @@ function timingSafeEqualString(a, b) {
   return timingSafeEqual(bufA, bufB);
 }
 
+/**
+ * The wizard cannot reuse the CLI script's redirect URI: the script owns
+ * localhost:3000 and the wizard serves the API that has to receive the callback.
+ * So it gets its own, which must also be registered in the LinkedIn app.
+ * Override with LINKEDIN_WIZARD_REDIRECT_URI.
+ */
+export function linkedInRedirectUri({ host, port }) {
+  return (
+    process.env.LINKEDIN_WIZARD_REDIRECT_URI ||
+    `http://${host}:${port}/api/auth/linkedin/callback`
+  );
+}
+
+/**
+ * Real LinkedIn auth, bound to the wizard's own redirect URI.
+ *
+ * getAddress is a function, not a port, because the port is not known until
+ * the server is listening — and callers may pass port 0 to get a free one.
+ */
+function createLinkedInAuth(getAddress) {
+  // Resolved per request so it is correct even on an ephemeral port.
+  const redirectUri = () => linkedInRedirectUri(getAddress());
+
+  return {
+    authorizeUrl: ({ state }) => authorizeUrl({ state, redirectUri: redirectUri() }),
+    exchange: (code) => exchange(code, { redirectUri: redirectUri() }),
+  };
+}
+
 export function createSetupServer({
   port = 4319,
   host = "127.0.0.1",
@@ -157,13 +187,21 @@ export function createSetupServer({
   syncImpl = syncSecrets,
   env = process.env,
   envPath = path.join(path.dirname(fileURLToPath(import.meta.url)), "..", ".env"),
-  linkedin = null,
+linkedin,
   dryRunImpl,
   ghCheckImpl,
   docsDir,
   webBase = WEB_BASE,
 } = {}) {
-  const state = createState();
+  /** Declared early so the LinkedIn adapter can read the bound port. */
+  let server;
+  const linkedinImpl =
+    linkedin === undefined
+      ? createLinkedInAuth(() => ({ host, port: server?.address()?.port ?? port }))
+      : linkedin;
+
+  /** Rotated on every authorization attempt, so a retry is not a replay. */
+  let state = null;
   /** Tokens waiting to be collected by the wizard. In memory only. */
   const pending = new Map();
   const runDryRunImpl = dryRunImpl ?? defaultDryRun;
@@ -241,20 +279,36 @@ export function createSetupServer({
       };
 
       const values = body.values && typeof body.values === "object" ? body.values : env;
-      const result = await syncImpl({
-        env: values,
-        repo: body.repo,
-        dryRun: !apply,
-      });
 
-      if (result.ok && apply && targets.env) {
+      // Honouring the GitHub checkbox used to require this to be skipped
+      // entirely; it was computed and then ignored, so an .env-only save still
+      // tried to push secrets and failed.
+      let result = { ok: true, applied: false, reason: "skipped", set: [], missing: [], skipped: [] };
+      if (targets.github) {
+        result = await syncImpl({ env: values, repo: body.repo, dryRun: !apply });
+      }
+
+      const messages = [];
+      if (targets.github) messages.push(formatSyncResult(result));
+
+      // The .env write is independent: a GitHub failure must not block it.
+      if (apply && targets.env) {
         const envResult = writeEnvFile(envPath, values);
         result.envUpdated = envResult.updated;
+        messages.push(
+          envResult.updated.length > 0
+            ? `✅ Wrote ${envResult.updated.length} value(s) to .env: ${envResult.updated.join(", ")}`
+            : "Nothing to write to .env."
+        );
+      } else if (targets.env && !apply) {
+        messages.push(`Would write ${Object.keys(values).length} value(s) to .env.`);
       }
+
+      if (messages.length === 0) messages.push("Nothing selected.");
 
       sendJson(res, result.ok ? 200 : 400, {
         ...result,
-        message: formatSyncResult(result),
+        message: messages.join("\n"),
       });
     },
 
@@ -267,17 +321,20 @@ export function createSetupServer({
       sendJson(res, 200, { ok: true, names, count: names.length });
     },
 
-    "GET /api/auth/linkedin/start": async (_req, res) => {
-      if (!linkedin) {
+"GET /api/auth/linkedin/start": async (_req, res) => {
+      if (!linkedinImpl) {
         sendJson(res, 501, { ok: false, error: "LinkedIn auth is not wired into the server yet." });
         return;
       }
-      const { url } = await linkedin.authorizeUrl({ state: state.value });
+// A fresh state per attempt. Reusing one across attempts would make the
+      // second "Connect LinkedIn" click look like a CSRF replay.
+      state = createState();
+      const { url } = await linkedinImpl.authorizeUrl({ state: state.value });
       sendJson(res, 200, { ok: true, url, state: state.value });
     },
 
-    "GET /api/auth/linkedin/callback": async (req, res, url) => {
-      if (!linkedin) {
+"GET /api/auth/linkedin/callback": async (req, res, url) => {
+      if (!linkedinImpl) {
         sendJson(res, 501, { ok: false, error: "LinkedIn auth is not wired into the server yet." });
         return;
       }
@@ -291,15 +348,21 @@ export function createSetupServer({
         return;
       }
 
-      if (!state.isValid(url.searchParams.get("state"))) {
-        sendJson(res, 400, { ok: false, error: "state mismatch — possible CSRF, aborting" });
+if (!state?.isValid(url.searchParams.get("state"))) {
+        // Nothing in progress means a stray or stale callback, not an attack.
+        sendJson(res, 400, {
+          ok: false,
+          error: state
+            ? "state mismatch — possible CSRF, aborting"
+            : "This callback does not match an authorization in progress. Start again from the wizard.",
+        });
         return;
       }
 
       try {
-        const tokens = await linkedin.exchange(url.searchParams.get("code"), {
-          redirectUri: env.LINKEDIN_REDIRECT_URI,
-        });
+        // The adapter binds its own redirect URI, so the code is exchanged
+        // against the wizard's URL — not the CLI script's.
+        const tokens = await linkedinImpl.exchange(url.searchParams.get("code"));
 
         // Hold the tokens server-side and redirect the popup back to the app.
         // Putting them in a URL would leak them into history and referrers.
@@ -362,7 +425,7 @@ export function createSetupServer({
     return true;
   }
 
-  const server = createServer(async (req, res) => {
+  server = createServer(async (req, res) => {
     const rawUrl = new URL(req.url, `http://${host}:${port}`);
     // The built app may be mounted under a base path (Pages) or at the root
     // (local). Both must work, so strip the prefix if it is present.
@@ -437,6 +500,15 @@ if (invokedDirectly) {
     const url = `${root}${WEB_BASE === "/" ? "" : WEB_BASE}`;
 
     console.log(`\n  Setup server listening on ${url}\n`);
+
+    if (process.env.LINKEDIN_CLIENT_ID && process.env.LINKEDIN_CLIENT_SECRET) {
+      const cb = new URL(root).origin + "/api/auth/linkedin/callback";
+      console.log(`  LinkedIn auth is wired. Add this to Auth → Redirect URLs in your app:`);
+      console.log(`    ${cb}`);
+      if (linkedInRedirectUri({ host: "127.0.0.1", port: new URL(root).port }) !== cb) {
+        console.log(`    (from LINKEDIN_WIZARD_REDIRECT_URI)`);
+      }
+    }
 
     if (existsSync(
       path.join(path.dirname(fileURLToPath(import.meta.url)), "..", "web", "dist", "index.html")

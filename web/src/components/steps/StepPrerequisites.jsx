@@ -53,6 +53,10 @@ export default function StepPrerequisites() {
   const ghReady = Boolean(gh?.installed && gh?.authenticated);
   const todo = health ? outstanding(health) : [];
 
+  // The scan shells out to `gh`, so it takes a moment. Without a placeholder
+  // the cards below appear all at once and the whole page jumps.
+  const scanning = !health && !error;
+
   return (
     <section>
       <p className="mb-8 text-ash">
@@ -63,6 +67,27 @@ export default function StepPrerequisites() {
       {error && (
         <div className="panel mb-6 border-crimson p-4 text-crimson">
           Could not reach the setup server: {error}
+        </div>
+      )}
+
+      {scanning && (
+        <div className="space-y-4" aria-busy="true" aria-live="polite">
+          {["checking node.js…", "checking github cli…", "reading environment variables…"].map(
+            (label) => (
+              <div
+                key={label}
+                className="flex animate-pulse items-center gap-3 border-2 border-edge p-4"
+              >
+                <span className="material-symbols-outlined text-edge">hourglass_top</span>
+                <div className="flex-1">
+                  <p className="ff-mono text-[11px] uppercase tracking-[0.2em] text-ash">
+                    {label}
+                  </p>
+                  <div className="mt-2 h-3 w-1/3 bg-shell" />
+                </div>
+              </div>
+            )
+          )}
         </div>
       )}
 

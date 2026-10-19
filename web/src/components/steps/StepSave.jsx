@@ -3,9 +3,7 @@ import { useSetup } from "../../context/SetupContext.jsx";
 import { api } from "../../lib/api.js";
 
 export default function StepSave() {
-  const { values, linkedIn } = useSetup();
-  const [toGithub, setToGithub] = useState(true);
-  const [toEnv, setToEnv] = useState(true);
+  const { values, linkedIn, targets, setTarget } = useSetup();
   const [busy, setBusy] = useState(false);
   const [result, setResult] = useState(null);
   const [error, setError] = useState("");
@@ -21,7 +19,11 @@ export default function StepSave() {
     setBusy(true);
     setError("");
     try {
-      setResult(await api.save(combined, { apply, github: toGithub, env: toEnv }));
+      setResult(await api.save(combined, {
+        apply,
+        github: targets.github,
+        env: targets.env,
+      }));
     } catch (err) {
       setError(err.message);
     } finally {
@@ -53,14 +55,14 @@ export default function StepSave() {
 
       <div className="mb-8 grid max-w-2xl gap-4">
         {checkbox(
-          toGithub,
-          setToGithub,
+          targets.github,
+          (v) => setTarget("github", v),
           "Save as GitHub Actions secrets",
           "Needed for the scheduled daily post. Uses the GitHub CLI on your machine."
         )}
         {checkbox(
-          toEnv,
-          setToEnv,
+          targets.env,
+          (v) => setTarget("env", v),
           "Save to the local .env file",
           "Keeps `npm start` and `npm run preflight` working here. Existing values are preserved."
         )}

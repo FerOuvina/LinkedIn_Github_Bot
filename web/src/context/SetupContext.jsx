@@ -39,9 +39,16 @@ export function SetupProvider({ children }) {
     }, 1000);
   }, []);
 
+  // Held here, not in StepSave: navigating between steps unmounts that
+  // component, which reset both checkboxes to their defaults.
+  const [targets, setTargets] = useState({ github: true, env: true });
+  const setTarget = useCallback((key, value) => {
+    setTargets((prev) => ({ ...prev, [key]: value }));
+  }, []);
+
   const value = useMemo(
-    () => ({ values, setValue, linkedIn, connected, collectLinkedIn }),
-    [values, setValue, linkedIn, connected, collectLinkedIn]
+    () => ({ values, setValue, linkedIn, connected, collectLinkedIn, targets, setTarget }),
+    [values, setValue, linkedIn, connected, collectLinkedIn, targets, setTarget]
   );
 
   return <SetupContext.Provider value={value}>{children}</SetupContext.Provider>;

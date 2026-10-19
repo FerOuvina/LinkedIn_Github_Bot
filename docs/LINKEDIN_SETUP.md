@@ -23,14 +23,24 @@ This guide covers getting a token the first time and refreshing it after.
    before authorizing. Skipping **Share on LinkedIn** is the most common reason
    `w_member_social` is missing from the token.
 
-3. Open **Auth → Redirect URLs** and add:
+3. Open **Auth → Redirect URLs** and add both of these:
 
    ```
    http://localhost:3000/callback
+   http://127.0.0.1:4319/api/auth/linkedin/callback
    ```
 
-   The value must match `LINKEDIN_REDIRECT_URI` exactly, including the scheme,
-   port, and trailing path. If you change it, change both.
+   The first is for `npm run auth:linkedin` (the CLI script). The second is for
+   the setup wizard (`npm run setup`), which runs its own server and has to be
+   the one that receives the callback. Registering just one means whichever
+   method you don't use will fail with *This redirect URI has not been
+   approved*.
+
+   If you change the wizard's port, either register the new URL or set
+   `LINKEDIN_WIZARD_REDIRECT_URI` to match. The server prints the exact URL it
+   expects on startup.
+
+   Values must match exactly, including scheme, port, and path.
 
 4. On the app's **Auth** tab, copy the **Client ID** and **Client secret**.
 
@@ -42,8 +52,10 @@ LINKEDIN_CLIENT_SECRET=your_client_secret
 LINKEDIN_REDIRECT_URI=http://localhost:3000/callback
 ```
 
-The client secret is a real credential. Keep it in `.env` (gitignored) and in
-GitHub Secrets — never in a committed file.
+The client secret is a real credential, and it is **not** pushed to GitHub
+Secrets — the scheduled job posts with the access token alone, so the wizard
+deliberately keeps both client credentials local. Keep them in `.env`
+(gitignored) only.
 
 ## Get your token
 
@@ -137,6 +149,14 @@ about 5 minutes. Rerun the flow; don't reuse an old code.
 
 **`redirect_uri` mismatch error from LinkedIn** — the URI registered in the app
 and your `.env` differ. Compare them character by character.
+
+**`LinkedIn auth is not wired into the server yet.`** — the wizard was started
+with auth explicitly disabled. Restart it normally with `npm run setup`; if you
+set `LINKEDIN_CLIENT_ID` and `LINKEDIN_CLIENT_SECRET`, it wires itself up.
+
+**`Missing LINKEDIN_CLIENT_ID and LINKEDIN_CLIENT_SECRET`** — the wizard's
+**Connect LinkedIn** button needs your app credentials, not a token you already
+have. Add both to `.env` and restart.
 
 **`This redirect URI has not been approved`** — add the exact URI under
 Auth → Redirect URLs in the LinkedIn app. It can take a few minutes to
