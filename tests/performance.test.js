@@ -15,24 +15,35 @@ function sourceFiles(dir) {
   });
 }
 
-/** Icons the components ask for, whether literal or passed through as data. */
+/** Icons the components ask for, whether literal, in a ternary, or as data. */
 function collectUsedIcons() {
   const text = sourceFiles(src)
     .map((file) => readFileSync(file, "utf8"))
     .join("\n");
 
-  // Deliberately narrow: a looser "capture any {token}" pattern sweeps up
-  // ordinary JSX variables and reports them as missing icons.
-  const patterns = [
-    /material-symbols-outlined[^>]*>\s*([a-z_0-9]+)\s*</g,
-    /\["([a-z_0-9]+)",\s*"[^"]+"\]/g,
-    /icon:\s*"([a-z_0-9]+)"/g,
-  ];
-
   const found = new Set();
-  for (const re of patterns) {
-    for (const m of text.matchAll(re)) found.add(m[1]);
+
+  // Icons written straight into the element.
+  for (const m of text.matchAll(/material-symbols-outlined[^>]*>\s*([a-z_0-9]+)\s*</g)) {
+    found.add(m[1]);
   }
+
+  // Icons chosen by an expression, e.g. {isActive ? "radio_button_checked" : "x"}.
+  // The sidebar nests three deep, so every literal in the element's children
+  // counts. Only the children: className values sit before the tag's closing
+  // ">" and would otherwise contribute "text", "flex" and friends.
+  for (const m of text.matchAll(
+    /material-symbols-outlined[\s\S]{0,400}?>([\s\S]{0,400}?)<\//g
+  )) {
+    for (const q of m[1].matchAll(/["']([a-z][a-z0-9_]{2,})["']/g)) {
+      found.add(q[1]);
+    }
+  }
+
+  // Icons passed in as data.
+  for (const m of text.matchAll(/\["([a-z_0-9]+)",\s*"[^"]+"\]/g)) found.add(m[1]);
+  for (const m of text.matchAll(/icon:\s*"([a-z_0-9]+)"/g)) found.add(m[1]);
+
   return found;
 }
 
@@ -75,6 +86,45 @@ describe("icon font", () => {
     const a = iconNamesFrom(webIndex);
     const b = iconNamesFrom(privacyIndex);
     expect([...a].sort()).toEqual([...b].sort());
+  });
+});
+
+describe("tests do not depend on web dependencies", () => {
+  // CI installs only the root dependencies, so a test that imports react or
+  // wouter fails there while passing locally, because web/node_modules exists.
+  // Note: no bare "vite" here — the root installs "vitest", and an unanchored
+  // pattern would match it.
+  const WEB_DEPS = /from\s+["'](react(-dom)?|wouter|marked|dompurify)["']/;
+
+  it("no test file lives outside tests/", () => {
+    // A separate walk: sourceFiles deliberately skips test files.
+    const stray = [];
+    const walk = (dir) => {
+      for (const entry of readdirSync(dir)) {
+        const full = path.join(dir, entry);
+        if (statSync(full).isDirectory()) {
+          if (entry !== "node_modules") walk(full);
+        } else if (/\.test\.[jt]sx?$/.test(entry)) {
+          stray.push(path.relative(ROOT, full));
+        }
+      }
+    };
+    walk(WEB);
+
+    expect(
+      stray,
+      "move these into tests/ so they do not need web dependencies"
+    ).toEqual([]);
+  });
+
+  it("no test imports a web-only dependency", () => {
+    const tests = readdirSync(path.join(ROOT, "tests"))
+      .filter((f) => f.endsWith(".js"))
+      .map((f) => readFileSync(path.join(ROOT, "tests", f), "utf8"));
+
+    for (const source of tests) {
+      expect(source, "a test imports a web-only dependency").not.toMatch(WEB_DEPS);
+    }
   });
 });
 

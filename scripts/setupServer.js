@@ -322,6 +322,17 @@ export function createSetupServer({
     );
     const handler = routes[`${req.method} ${url.pathname}`];
 
+    // The build is mounted under a base path. Locally that means the bare root
+    // would match no route and render a blank page, so send the browser to the
+    // same path Pages uses. Checked against the original path: once the base
+    // is stripped, "/LinkedIn_Github_Boot/" looks identical to "/" and this
+    // would redirect to itself forever.
+    if (rawUrl.pathname === "/" && webBase !== "/") {
+      res.writeHead(302, { Location: webBase });
+      res.end();
+      return;
+    }
+
     if (!handler) {
       if (url.pathname === "/docs" || url.pathname.startsWith("/docs/")) {
         if (!serveDocs(url.pathname, res)) {
@@ -329,6 +340,9 @@ export function createSetupServer({
         }
         return;
       }
+      // The build is mounted under a base path. Locally that means the root
+      // would match no route and render a blank page, so send the browser to
+      // the same path Pages uses.
       // An unknown /api path must stay a JSON 404, never the app shell.
       if (!url.pathname.startsWith("/api/") && serveStatic(url.pathname, res)) return;
       sendJson(res, 404, { ok: false, error: `No route for ${req.method} ${url.pathname}` });
@@ -369,15 +383,18 @@ const invokedDirectly =
 if (invokedDirectly) {
   try {
     const { listen } = createSetupServer();
-    const url = await listen();
-    const built = existsSync(
-      path.join(path.dirname(fileURLToPath(import.meta.url)), "..", "web", "dist", "index.html")
-    );
+    const root = await listen();
+    const url = `${root}${WEB_BASE === "/" ? "" : WEB_BASE}`;
 
     console.log(`\n  Setup server listening on ${url}\n`);
 
-    if (built) {
-      console.log("  Open that address to run the setup wizard.");
+    if (existsSync(
+      path.join(path.dirname(fileURLToPath(import.meta.url)), "..", "web", "dist", "index.html")
+    )) {
+      console.log(`  Open ${url} to run the setup wizard.`);
+      if (WEB_BASE !== "/") {
+        console.log("  The app is built for the Pages subpath, so it is served there too.");
+      }
     } else {
       console.log("  The browser UI has not been built yet, so the API only.");
       console.log("  Build it with:  npm install && npm run build   (inside web/)");
