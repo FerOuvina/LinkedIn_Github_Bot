@@ -40,7 +40,7 @@ export default function Guide() {
     <div className="scanlines grid-bg min-h-screen bg-void font-body text-bone">
       <header className="sticky top-0 z-40 border-b-2 border-edge bg-void/90 backdrop-blur-md">
         <div className="mx-auto flex h-16 max-w-5xl items-center justify-between px-4 sm:px-6">
-          <Link href="/" className="flex items-center gap-2 font-bold">
+          <Link href="/" className="flex items-center gap-2">
             <span className="material-symbols-outlined text-primary">rocket_launch</span>
             <span className="ff-mono text-sm">github<span className="text-primary">→</span>linkedin</span>
           </Link>

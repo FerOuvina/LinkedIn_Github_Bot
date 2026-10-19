@@ -1,11 +1,16 @@
+import { lazy, Suspense } from "react";
 import { Route, Router } from "wouter";
 
 import Home from "./components/Home.jsx";
 import GettingStarted from "./components/GettingStarted.jsx";
 import StaticSetup from "./components/StaticSetup.jsx";
-import Guide from "./components/Guide.jsx";
 import { SetupProvider } from "./context/SetupContext.jsx";
 import { ModeProvider, useMode } from "./context/ModeContext.jsx";
+
+// The guide is the only page that renders markdown, and the markdown renderer
+// plus the sanitiser are a large part of the bundle. Loading them on demand
+// keeps them off the critical path for every other page.
+const Guide = lazy(() => import("./components/Guide.jsx"));
 
 // Pages serves the app under a subpath. Without this, the router compares
 // "/LinkedIn_Github_Bot/" against the route "/" and matches nothing, which
@@ -20,6 +25,14 @@ function SetupRoute() {
   return <StaticSetup />;
 }
 
+function Loading() {
+  return (
+    <div className="grid-bg flex min-h-screen items-center justify-center bg-void">
+      <p className="ff-kicker animate-blink">loading…</p>
+    </div>
+  );
+}
+
 function App() {
   return (
     <Router base={BASE}>
@@ -32,7 +45,9 @@ function App() {
             <SetupRoute />
           </Route>
           <Route path="/guide">
-            <Guide />
+            <Suspense fallback={<Loading />}>
+              <Guide />
+            </Suspense>
           </Route>
         </SetupProvider>
       </ModeProvider>
