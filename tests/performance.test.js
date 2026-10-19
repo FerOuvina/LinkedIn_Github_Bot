@@ -89,6 +89,45 @@ describe("icon font", () => {
   });
 });
 
+describe("tests do not depend on web dependencies", () => {
+  // CI installs only the root dependencies, so a test that imports react or
+  // wouter fails there while passing locally, because web/node_modules exists.
+  // Note: no bare "vite" here — the root installs "vitest", and an unanchored
+  // pattern would match it.
+  const WEB_DEPS = /from\s+["'](react(-dom)?|wouter|marked|dompurify)["']/;
+
+  it("no test file lives outside tests/", () => {
+    // A separate walk: sourceFiles deliberately skips test files.
+    const stray = [];
+    const walk = (dir) => {
+      for (const entry of readdirSync(dir)) {
+        const full = path.join(dir, entry);
+        if (statSync(full).isDirectory()) {
+          if (entry !== "node_modules") walk(full);
+        } else if (/\.test\.[jt]sx?$/.test(entry)) {
+          stray.push(path.relative(ROOT, full));
+        }
+      }
+    };
+    walk(WEB);
+
+    expect(
+      stray,
+      "move these into tests/ so they do not need web dependencies"
+    ).toEqual([]);
+  });
+
+  it("no test imports a web-only dependency", () => {
+    const tests = readdirSync(path.join(ROOT, "tests"))
+      .filter((f) => f.endsWith(".js"))
+      .map((f) => readFileSync(path.join(ROOT, "tests", f), "utf8"));
+
+    for (const source of tests) {
+      expect(source, "a test imports a web-only dependency").not.toMatch(WEB_DEPS);
+    }
+  });
+});
+
 describe("bundle splitting", () => {
   const dist = path.join(WEB, "dist", "assets");
 
