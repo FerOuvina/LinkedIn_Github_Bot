@@ -1,4 +1,5 @@
 import { describe, it, expect } from "vitest";
+import { readFileSync } from "node:fs";
 import {
   rewriteRelativeUrls,
   extractHeadings,
@@ -72,5 +73,25 @@ describe("extractHeadings", () => {
 
     expect(headings.map((h) => h.id)).toEqual(["step", "step-2"]);
     expect(html).toContain('id="step-2"');
+  });
+});
+
+describe("guide asset paths", () => {
+  it("prefixes rewritten paths with the site base, not just /docs/", () => {
+    // Regression: a bare "/docs/img/logo.jpg" resolves to the domain root on
+    // Pages, so the image silently 404s on the deployed site.
+    const base = "/LinkedIn_Github_Boot/docs/";
+    expect(rewriteRelativeUrls('<img src="img/logo.jpg">', base)).toBe(
+      '<img src="/LinkedIn_Github_Boot/docs/img/logo.jpg">'
+    );
+  });
+
+  it("the guide component passes the base-prefixed path", () => {
+    const source = readFileSync(
+      new URL("../web/src/components/Guide.jsx", import.meta.url),
+      "utf8"
+    );
+    expect(source).toContain('rewriteRelativeUrls(raw, sitePath("/docs/"))');
+    expect(source).not.toContain("rewriteRelativeUrls(raw)");
   });
 });

@@ -3,7 +3,7 @@ import { Link } from "wouter";
 import { marked } from "marked";
 import DOMPurify from "dompurify";
 import { rewriteRelativeUrls, extractHeadings } from "../lib/markdown.js";
-import { docsUrl } from "../lib/api.js";
+import { docsUrl, sitePath } from "../lib/api.js";
 import HostedBanner from "./HostedBanner.jsx";
 
 const GUIDES = [
@@ -23,7 +23,11 @@ export default function Guide() {
       })
       .then((markdown) => {
         const raw = marked.parse(markdown);
-        const { html, headings } = extractHeadings(rewriteRelativeUrls(raw));
+        // Relative paths in a guide are relative to docs/, and that whole path
+        // has to carry the site base or it resolves off the Pages subpath.
+        const { html, headings } = extractHeadings(
+          rewriteRelativeUrls(raw, sitePath("/docs/"))
+        );
         // Sanitise last: the guide is repo content, but the renderer must
         // never be the reason untrusted HTML reaches the page.
         const clean = DOMPurify.sanitize(html);
