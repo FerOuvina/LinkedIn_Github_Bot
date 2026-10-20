@@ -256,9 +256,121 @@ describe("POST /api/dry-run", () => {
     const res = await s.post("/api/dry-run", {});
     const body = await res.json();
 
-    expect(body.ok).toBe(false);
+expect(body.ok).toBe(false);
     expect(body.exitCode).toBe(1);
     expect(body.stderr).toContain("Missing env variables");
+  });
+});
+
+describe("schedule routes", () => {
+  let dir;
+  let workflow;
+
+  const WORKFLOW = `name: Daily
+
+on:
+  schedule:
+    - cron: "0 18 * * *"
+  workflow_dispatch:
+`;
+
+  beforeEach(() => {
+    dir = mkdtempSync(path.join(tmpdir(), "sched-"));
+    workflow = path.join(dir, "linkedin-post.yml");
+    writeFileSync(workflow, WORKFLOW, "utf8");
+  });
+
+  afterEach(() => rmSync(dir, { recursive: true, force: true }));
+
+  it("reports the committed cron and the zone choices", async () => {
+    const s = await start({ workflowPath: workflow });
+    const body = await (await s.get("/api/schedule")).json();
+
+    expect(body.ok).toBe(true);
+    expect(body.current).toBe("0 18 * * *");
+    expect(body.parsed).toEqual({ hour: 18, minute: 0, days: [] });
+    expect(body.zones.cities.length).toBeGreaterThan(20);
+    expect(body.days).toHaveLength(7);
+  });
+
+  it("converts a local time into the UTC cron Actions will run", async () => {
+    const s = await start({ workflowPath: workflow });
+    const res = await s.post("/api/schedule/preview", {
+      timeZone: "Asia/Tokyo",
+      hour: 9,
+      minute: 0,
+      days: [1, 2, 3, 4, 5],
+    });
+    const body = await res.json();
+
+    expect(res.status).toBe(200);
+    // 09:00 in Tokyo is midnight UTC, and the run is weekdays only.
+    expect(body.cron).toBe("0 0 * * 1-5");
+    expect(body.utcTime).toBe("00:00");
+    expect(body.offsetLabel).toBe("UTC+09:00");
+    expect(body.runs.length).toBe(5);
+  });
+
+  it("warns that cron cannot follow daylight saving", async () => {
+    const s = await start({ workflowPath: workflow });
+    const body = await (
+      await s.post("/api/schedule/preview", { timeZone: "Europe/Madrid", hour: 9 })
+    ).json();
+
+    expect(body.cron).toBe("0 7 * * *"); // CEST in July
+    expect(body.warnings.join(" ")).toMatch(/daylight saving/i);
+  });
+
+  it("rejects an unknown timezone rather than writing a nonsense cron", async () => {
+    const s = await start({ workflowPath: workflow });
+    const res = await s.post("/api/schedule/preview", { timeZone: "Mars/Olympus", hour: 9 });
+
+    expect(res.status).toBe(400);
+    expect((await res.json()).error).toMatch(/Unknown time zone/);
+  });
+
+  it("leaves the workflow alone when previewing", async () => {
+    const s = await start({ workflowPath: workflow });
+    await s.post("/api/schedule/preview", { timeZone: "Asia/Tokyo", hour: 9 });
+
+    expect(readFileSync(workflow, "utf8")).toBe(WORKFLOW);
+  });
+
+  it("writes the cron and reports what changed", async () => {
+    const s = await start({ workflowPath: workflow });
+    const res = await s.post("/api/schedule/apply", { cron: "30 9 * * 1-5" });
+    const body = await res.json();
+
+    expect(res.status).toBe(200);
+    expect(body.previous).toBe("0 18 * * *");
+    expect(body.cron).toBe("30 9 * * 1-5");
+    expect(readFileSync(workflow, "utf8")).toContain('- cron: "30 9 * * 1-5"');
+    expect(readFileSync(workflow, "utf8")).toContain("workflow_dispatch:");
+  });
+
+  it("says so when the schedule is already what was asked for", async () => {
+    const s = await start({ workflowPath: workflow });
+    const body = await (await s.post("/api/schedule/apply", { cron: "0 18 * * *" })).json();
+
+    expect(body.ok).toBe(true);
+    expect(body.message).toMatch(/nothing changed/i);
+  });
+
+  it("refuses to write when the workflow has no single cron", async () => {
+    writeFileSync(workflow, `${WORKFLOW}    - cron: "5 5 * * *"\n`, "utf8");
+    const s = await start({ workflowPath: workflow });
+
+    const res = await s.post("/api/schedule/apply", { cron: "30 9 * * *" });
+    expect(res.status).toBe(400);
+    expect((await res.json()).error).toMatch(/cron/);
+  });
+
+  it("reports a missing workflow instead of throwing", async () => {
+    const s = await start({ workflowPath: path.join(dir, "absent.yml") });
+    const res = await s.post("/api/schedule/apply", { cron: "30 9 * * *" });
+
+    expect(res.status).toBe(400);
+    expect((await res.json()).error).toMatch(/Not found/);
   });
 });
 

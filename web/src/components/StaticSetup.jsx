@@ -55,13 +55,19 @@ const STEPS = [
     note: "The first run is a dry run and only lists what it would set. Add `--apply` to write.",
   },
   {
+    title: "Choose when it posts",
+    body: "GitHub scheduled jobs run on UTC, so the wizard converts your city and time into the cron the workflow needs. The wizard step does this for you; by hand it is the `cron:` line in `.github/workflows/linkedin-post.yml`.",
+    commands: [],
+    note: "A cron cannot follow daylight saving, so re-run that step after the clocks change.",
+  },
+  {
     title: "Verify, then try a post",
     body: "Check every credential against its real API, then generate a post without publishing it.",
     commands: ["npm run preflight", "npm start -- --dry-run"],
   },
   {
     title: "Let it run",
-    body: "The workflow posts every day at 18:00 UTC. You can also trigger it by hand from the Actions tab.",
+    body: "The schedule is whatever cron line is in the workflow — the setup wizard has a step that converts a city and time into the UTC cron for you. You can also trigger a run by hand from the Actions tab.",
     commands: [],
   },
 ];
@@ -98,7 +104,7 @@ export default function StaticSetup() {
           Getting started
         </h1>
         <p className="mt-4 max-w-2xl text-lg text-ash">
-          Six steps, about ten minutes. Nothing here needs a browser-based
+          Seven steps, about ten minutes. Nothing here needs a browser-based
           setup: run the commands in your terminal and everything works the same
           way.
         </p>

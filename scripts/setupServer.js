@@ -11,6 +11,18 @@ import { writeEnvFile } from "./envFile.js";
 import { stripBase, WEB_BASE } from "./webBase.js";
 import { envMissing } from "./validations.js";
 import { authorizeUrl, exchange } from "./linkedinAuth.js";
+import {
+  DAYS,
+  DEFAULT_WORKFLOW,
+  buildCron,
+  listTimeZones,
+  nextRuns,
+  offsetLabel,
+  parseCron,
+  readWorkflowCron,
+  toUtcTime,
+  writeWorkflowCron,
+} from "./schedule.js";
 
 const JSON_HEADERS = { "Content-Type": "application/json; charset=utf-8" };
 
@@ -192,6 +204,7 @@ linkedin,
   ghCheckImpl,
   docsDir,
   webBase = WEB_BASE,
+  workflowPath,
 } = {}) {
   /** Declared early so the LinkedIn adapter can read the bound port. */
   let server;
@@ -210,6 +223,10 @@ linkedin,
 
   const resolvedWebDir =
     webDir ?? path.join(path.dirname(fileURLToPath(import.meta.url)), "..", "web", "dist");
+
+  const resolvedWorkflowPath =
+    workflowPath ??
+    path.join(path.dirname(fileURLToPath(import.meta.url)), "..", DEFAULT_WORKFLOW);
 
   const MIME = {
     ".html": "text/html; charset=utf-8",
@@ -390,10 +407,76 @@ if (!state?.isValid(url.searchParams.get("state"))) {
     },
 
     // Runs the real bot in dry-run mode and returns what it printed.
-    "POST /api/dry-run": async (_req, res) => {
+"POST /api/dry-run": async (_req, res) => {
       try {
         const { stdout, stderr, code } = await runDryRunImpl();
-        sendJson(res, 200, { ok: code === 0, exitCode: code, stdout, stderr });
+        sendJson(res, code === 0 ? 200 : 500, { ok: code === 0, exitCode: code, stdout, stderr });
+      } catch (err) {
+        sendJson(res, 500, { ok: false, error: err.message });
+      }
+    },
+
+    // ── Schedule ──────────────────────────────────────────────
+    "GET /api/schedule": async (_req, res) => {
+      const current = readWorkflowCron(resolvedWorkflowPath);
+      sendJson(res, 200, {
+        ok: true,
+        workflowPath: resolvedWorkflowPath,
+        current,
+        parsed: parseCron(current),
+        days: DAYS,
+        zones: listTimeZones(),
+      });
+    },
+
+    // Converts a local wall-clock time into the UTC cron Actions will run.
+    "POST /api/schedule/preview": async (req, res) => {
+      const body = await readBody(req);
+
+      try {
+        const converted = toUtcTime({
+          timeZone: body.timeZone,
+          hour: Number(body.hour),
+          minute: Number(body.minute ?? 0),
+        });
+
+        const cron = buildCron({
+          hour: converted.utcHour,
+          minute: converted.utcMinute,
+          days: body.days ?? [],
+        });
+
+        sendJson(res, 200, {
+          ok: true,
+          cron,
+          utcTime: `${String(converted.utcHour).padStart(2, "0")}:${String(converted.utcMinute).padStart(2, "0")}`,
+          offsetLabel: converted.offsetLabel,
+          warnings: converted.warnings,
+          runs: nextRuns({ cron, timeZone: body.timeZone, count: 5 }),
+        });
+      } catch (err) {
+        sendJson(res, 400, { ok: false, error: err.message });
+      }
+    },
+
+    "POST /api/schedule/apply": async (req, res) => {
+      const body = await readBody(req);
+
+      try {
+        const result = writeWorkflowCron(resolvedWorkflowPath, body.cron);
+        if (!result.ok) {
+          sendJson(res, 400, { ok: false, error: result.reason });
+          return;
+        }
+
+        sendJson(res, 200, {
+          ok: true,
+          ...result,
+          message:
+            result.previous === result.cron
+              ? `Already set to "${result.cron}" — nothing changed.`
+              : `Updated the schedule from "${result.previous}" to "${result.cron}".`,
+        });
       } catch (err) {
         sendJson(res, 500, { ok: false, error: err.message });
       }

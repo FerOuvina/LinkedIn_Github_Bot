@@ -106,9 +106,15 @@ than silent.
 
 ### GitHub Actions
 
-`.github/workflows/linkedin-post.yml` runs this daily at 18:00 UTC and can
-also be triggered manually. Add the five variables above as repository
-secrets and you're done.
+`.github/workflows/linkedin-post.yml` runs this on a schedule and can also be
+triggered manually. Add the secrets above as repository variables and you're
+done.
+
+Its `cron:` line is UTC, because GitHub Actions has no timezone support, so it
+has to be the hour you want *in UTC* — not in your own timezone. `npm run setup`
+has a step that converts a city and a local time into the right cron for you.
+A cron cannot follow daylight saving, so re-run that step after the clocks
+change if you are somewhere that observes it.
 
 ## Tests
 
