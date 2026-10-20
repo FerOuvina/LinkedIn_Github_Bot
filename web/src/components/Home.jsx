@@ -8,7 +8,7 @@ const TICKER = [
   "runs daily",
   "open source",
   "your keys stay yours",
-  "scheduled at 18:00 UTC",
+  "runs on your schedule",
 ];
 
 const REPO = "https://github.com/FerOuvina/LinkedIn_Github_Bot";
@@ -190,7 +190,7 @@ export default function Home() {
 
           <div className="grid w-full max-w-2xl grid-cols-3 gap-px border-2 border-edge bg-edge">
             {[
-              ["6", "steps to set up"],
+              ["8", "steps to set up"],
               ["0", "manual updates"],
               ["~2", "min per renewal"],
             ].map(([value, label]) => (

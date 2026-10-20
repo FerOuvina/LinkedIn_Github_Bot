@@ -6,6 +6,7 @@ import StepCredentials from "./steps/StepCredentials";
 import StepLinkedIn from "./steps/StepLinkedIn";
 import StepSave from "./steps/StepSave";
 import StepSchedule from "./steps/StepSchedule";
+import StepPrompt from "./steps/StepPrompt";
 import StepVerify from "./steps/StepVerify";
 
 function GettingStarted() {
@@ -17,7 +18,8 @@ function GettingStarted() {
     { id: 4, title: "Connect LinkedIn", sidebar: "Connect LinkedIn", component: StepLinkedIn },
     { id: 5, title: "Save credentials", sidebar: "Save Credentials", component: StepSave },
     { id: 6, title: "Choose a time", sidebar: "Post Schedule", component: StepSchedule },
-    { id: 7, title: "Verify", sidebar: "Verify & Test", component: StepVerify },
+    { id: 7, title: "Edit the prompt", sidebar: "Edit Prompt", component: StepPrompt },
+    { id: 8, title: "Verify", sidebar: "Verify & Test", component: StepVerify },
   ];
 
   const [currentStep, setCurrentStep] = useState(0);

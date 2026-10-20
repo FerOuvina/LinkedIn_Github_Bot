@@ -44,6 +44,15 @@ export const api = {
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ cron }),
     }).then(json),
+
+  prompt: () => fetch(at("/api/prompt")).then(json),
+
+  savePrompt: (prompt) =>
+    fetch(at("/api/prompt"), {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ prompt }),
+    }).then(json),
 };
 
 export const docsUrl = (file) => at(`/docs/${file}`);
