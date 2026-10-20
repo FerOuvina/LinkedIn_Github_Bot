@@ -35,6 +35,12 @@ describe("planSecrets", () => {
     expect(JSON.stringify(plan)).not.toContain("gh-secret-value");
   });
 
+  it("plans POST_LANGUAGE when it is configured", () => {
+    const plan = planSecrets({ ...FULL_ENV, POST_LANGUAGE: "es" });
+
+    expect(plan.set).toContain("POST_LANGUAGE");
+  });
+
   it("never plans GITHUB_TOKEN, which the API rejects as a reserved name", () => {
     // Setting it returns HTTP 422: "Secret names must not start with GITHUB_".
     const plan = planSecrets(FULL_ENV);

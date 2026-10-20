@@ -29,6 +29,17 @@ const FIELDS = [
     placeholder: "qwen/qwen3.8-27b",
     help: "Leave blank to use the default. Must be a chat model.",
   },
+  {
+    name: "POST_LANGUAGE",
+    label: "Post language",
+    type: "select",
+    default: "en",
+    options: [
+      { value: "en", label: "English" },
+      { value: "es", label: "Spanish" },
+    ],
+    help: "The bot writes the LinkedIn post in this language.",
+  },
 ];
 
 export default function StepCredentials() {
@@ -48,13 +59,27 @@ export default function StepCredentials() {
             <label className="ff-mono text-[11px] uppercase tracking-[0.2em] text-bone">
               {field.label}
             </label>
-            <input
-              type={field.type ?? "text"}
-              value={values[field.name] ?? ""}
-              placeholder={field.placeholder}
-              onChange={(e) => setValue(field.name, e.target.value)}
-              className="ff-input"
-            />
+            {field.type === "select" ? (
+              <select
+                value={values[field.name] ?? field.default}
+                onChange={(e) => setValue(field.name, e.target.value)}
+                className="ff-input"
+              >
+                {field.options.map((option) => (
+                  <option key={option.value} value={option.value}>
+                    {option.label}
+                  </option>
+                ))}
+              </select>
+            ) : (
+              <input
+                type={field.type ?? "text"}
+                value={values[field.name] ?? ""}
+                placeholder={field.placeholder}
+                onChange={(e) => setValue(field.name, e.target.value)}
+                className="ff-input"
+              />
+            )}
             <p className="text-sm text-ash">
               {field.help}{" "}
               {field.link && (

@@ -42,7 +42,7 @@ async function loadRun({ dryRun }) {
   }
 }
 
-function githubHandlers(commitsByRepo) {
+function githubHandlers(commitsByRepo, llmContent = "AI post body") {
   return (url) => {
     if (url.includes("/users/") && url.includes("/repos")) {
       return jsonResponse(REPO_LIST);
@@ -52,7 +52,7 @@ function githubHandlers(commitsByRepo) {
       return jsonResponse(commitsByRepo[commitsMatch[1]] ?? []);
     }
     if (url.includes("api.groq.com")) {
-      return jsonResponse({ choices: [{ message: { content: "AI post body" } }] });
+      return jsonResponse({ choices: [{ message: { content: llmContent } }] });
     }
     if (url.includes("api.linkedin.com")) {
       return jsonResponse({}, true, 201);
@@ -117,15 +117,33 @@ describe("run()", () => {
     const sent = JSON.parse(hfCall.options.body).messages[1].content;
     expect(sent).toContain("alpha: feat: add auth");
     expect(sent).toContain("beta: fix: login crash");
+    expect(sent).toContain("https://github.com/me/alpha");
+    expect(sent).toContain("https://github.com/me/beta");
     expect(sent).not.toContain("chore: bump deps");
     expect(sent).not.toContain("body ignored");
 
     const printed = logSpy.mock.calls.flat().join("\n");
     expect(printed).toContain("AI post body");
-    expect(printed).toContain("My GitHub");
+    expect(printed).not.toContain("My GitHub");
 
     // dry run must never hit LinkedIn
     expect(calls.some((c) => c.url.includes("api.linkedin.com"))).toBe(false);
+  });
+
+  it("rewrites a hallucinated repository link to the real one", async () => {
+    mockFetch(
+      githubHandlers(
+        { alpha: [commit("feat: add auth")] },
+        "See https://github.com/me/wrong-repo"
+      )
+    );
+    const run = await loadRun({ dryRun: true });
+
+    await run();
+
+    const printed = logSpy.mock.calls.flat().join("\n");
+    expect(printed).toContain("https://github.com/me/alpha");
+    expect(printed).not.toContain("https://github.com/me/wrong-repo");
   });
 
   it("publishes to LinkedIn when not in dry-run mode", async () => {
@@ -211,5 +229,44 @@ describe("run()", () => {
     expect(sent).toContain("alpha: feat: add auth");
     expect(sent).not.toContain("{commits}");
     expect(sent).not.toContain("{hubUser}");
+  });
+
+  it("defaults to English when no language is configured", async () => {
+    const previous = process.env.POST_LANGUAGE;
+    delete process.env.POST_LANGUAGE;
+    try {
+      const calls = mockFetch(
+        githubHandlers({ alpha: [commit("feat: add auth")] })
+      );
+      const run = await loadRun({ dryRun: true });
+      await run();
+
+      const hfCall = calls.find((c) => c.url.includes("api.groq.com"));
+      const sent = JSON.parse(hfCall.options.body).messages[1].content;
+
+      expect(sent).toContain("Write the LinkedIn post in English.");
+    } finally {
+      if (previous !== undefined) process.env.POST_LANGUAGE = previous;
+    }
+  });
+
+  it("asks for the post in the configured language", async () => {
+    const previous = process.env.POST_LANGUAGE;
+    process.env.POST_LANGUAGE = "es";
+    try {
+      const calls = mockFetch(
+        githubHandlers({ alpha: [commit("feat: add auth")] })
+      );
+      const run = await loadRun({ dryRun: true });
+      await run();
+
+      const hfCall = calls.find((c) => c.url.includes("api.groq.com"));
+      const sent = JSON.parse(hfCall.options.body).messages[1].content;
+
+      expect(sent).toContain("Write the LinkedIn post in Spanish.");
+    } finally {
+      if (previous === undefined) delete process.env.POST_LANGUAGE;
+      else process.env.POST_LANGUAGE = previous;
+    }
   });
 });
