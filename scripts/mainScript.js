@@ -93,7 +93,11 @@ export default async function run() {
   const commitsText = filteredCommits
     .map((c) => `${c.repo}: ${c.message}`)
     .join('\n');
-  const prompt = loadPrompt()
+  const template = loadPrompt();
+  const withCommits = template.includes('{commits}')
+    ? template
+    : `${template}\n\nCommits:\n{commits}`;
+  const prompt = withCommits
     .replace('{commits}', commitsText)
     .replace('{hubUser}', HUB_USER);
 

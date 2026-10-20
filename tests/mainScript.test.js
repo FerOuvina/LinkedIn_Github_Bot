@@ -207,8 +207,7 @@ describe("run()", () => {
     const hfCall = calls.find((c) => c.url.includes("api.groq.com"));
     const sent = JSON.parse(hfCall.options.body).messages[1].content;
 
-    expect(sent).toContain("Write a concise LinkedIn post");
-    expect(sent).toContain("For the github user use octocat.");
+    expect(sent).toContain("You are a thoughtful software engineer");
     expect(sent).toContain("alpha: feat: add auth");
     expect(sent).not.toContain("{commits}");
     expect(sent).not.toContain("{hubUser}");

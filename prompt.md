@@ -19,4 +19,7 @@ Input you will receive:
 - Key files or areas changed (summary)
 - Any extra context (e.g. “this fixes a production issue”, “performance improvement”, etc.)
 
+Commits:
+{commits}
+
 Output only the LinkedIn post text. Nothing else.
