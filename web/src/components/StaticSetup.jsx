@@ -111,7 +111,7 @@ export default function StaticSetup() {
       </header>
 
       <main className='max-w-4xl px-4 py-10 mx-auto sm:px-6'>
-        <div className='p-6 mt-12 text-sm panel text-ash'>
+        <div className='p-6 my-6 text-sm panel text-ash'>
           <p className='ff-mono text-xs uppercase tracking-[0.2em] text-primary'>
             Why is this read-only?
           </p>
@@ -125,7 +125,7 @@ export default function StaticSetup() {
             to use it. These steps are the same ones, written out.
           </p>
         </div>
-        <h1 className='text-4xl ff-display sm:text-5xl'>Getting started</h1>
+        <h1 className='mt-6 text-4xl ff-display sm:text-5xl'>Getting started</h1>
         <p className='max-w-2xl mt-4 text-lg text-ash'>
           Nine steps, about ten minutes. Nothing here needs a browser-based
           setup: run the commands in your terminal and everything works the same
