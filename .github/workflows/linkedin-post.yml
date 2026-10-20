@@ -11,8 +11,9 @@ permissions:
 jobs:
   post-summary:
     runs-on: ubuntu-latest
-    # Every fetch has its own timeout, so the job should never need hours.
-    timeout-minutes: 15
+    # Every fetch has its own timeout. This leaves room for the wait between
+    # language posts (up to 60 minutes in post.config.json).
+    timeout-minutes: 90
 
     steps:
       - name: Checkout repository
@@ -36,5 +37,4 @@ jobs:
           LINKEDIN_ACCESS_TOKEN: ${{ secrets.LINKEDIN_ACCESS_TOKEN }}
           LINKEDIN_AUTHOR_URN: ${{ secrets.LINKEDIN_AUTHOR_URN }}
           GROQ_API_KEY: ${{ secrets.GROQ_API_KEY }}
-          POST_LANGUAGE: ${{ secrets.POST_LANGUAGE }}
         run: node ./scripts/dailySummary.js

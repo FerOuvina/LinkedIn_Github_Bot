@@ -39,8 +39,9 @@ const STEPS = [
       "GROQ_API_KEY=gsk_...",
       "# optional, this is the default",
       "GROQ_MODEL=qwen/qwen3.8-27b",
-      "# optional: en (default) or es",
-      "POST_LANGUAGE=en",
+      "# optional: one post per language, minutes apart",
+      "POST_LANGUAGES=en",
+      "POST_GAP_MINUTES=5",
     ],
   },
   {

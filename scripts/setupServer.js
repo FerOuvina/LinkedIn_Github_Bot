@@ -10,6 +10,8 @@ import { syncSecrets, formatSyncResult } from "./syncSecrets.js";
 import { writeEnvFile } from "./envFile.js";
 import { stripBase, WEB_BASE } from "./webBase.js";
 import { envMissing } from "./validations.js";
+import { parseLanguages } from "./languages.js";
+import { readPostConfig, writePostConfig } from "./postConfig.js";
 import { authorizeUrl, exchange } from "./linkedinAuth.js";
 import {
   DAYS,
@@ -206,6 +208,7 @@ linkedin,
   webBase = WEB_BASE,
   workflowPath,
   promptPath,
+  configPath,
 } = {}) {
   /** Declared early so the LinkedIn adapter can read the bound port. */
   let server;
@@ -232,6 +235,10 @@ linkedin,
   const resolvedPromptPath =
     promptPath ??
     path.join(path.dirname(fileURLToPath(import.meta.url)), "..", "prompt.md");
+
+  const resolvedConfigPath =
+    configPath ??
+    path.join(path.dirname(fileURLToPath(import.meta.url)), "..", "post.config.json");
   const MIME = {
     ".html": "text/html; charset=utf-8",
     ".js": "text/javascript; charset=utf-8",
@@ -493,7 +500,13 @@ if (!state?.isValid(url.searchParams.get("state"))) {
         if (existsSync(resolvedPromptPath)) {
           prompt = readFileSync(resolvedPromptPath, "utf8");
         }
-        sendJson(res, 200, { ok: true, prompt, promptPath: resolvedPromptPath });
+        sendJson(res, 200, {
+          ok: true,
+          prompt,
+          promptPath: resolvedPromptPath,
+          config: readPostConfig(resolvedConfigPath),
+          configPath: resolvedConfigPath,
+        });
       } catch (err) {
         sendJson(res, 500, { ok: false, error: err.message });
       }
@@ -506,9 +519,42 @@ if (!state?.isValid(url.searchParams.get("state"))) {
         sendJson(res, 400, { ok: false, error: "prompt must be a string" });
         return;
       }
+
+      const current = readPostConfig(resolvedConfigPath);
+      let languages = current.languages;
+
+      if (body.languages !== undefined) {
+        languages = parseLanguages(body.languages);
+        if (languages.length === 0) {
+          sendJson(res, 400, {
+            ok: false,
+            error: "languages must include at least one supported code",
+          });
+          return;
+        }
+      }
+
+      if (body.gapMinutes !== undefined && !Number.isFinite(Number(body.gapMinutes))) {
+        sendJson(res, 400, {
+          ok: false,
+          error: "gapMinutes must be a number",
+        });
+        return;
+      }
+
       try {
         writeFileSync(resolvedPromptPath, prompt, "utf8");
-        sendJson(res, 200, { ok: true, promptPath: resolvedPromptPath });
+        const config = writePostConfig(resolvedConfigPath, {
+          languages,
+          gapMinutes:
+            body.gapMinutes === undefined ? current.gapMinutes : body.gapMinutes,
+        });
+        sendJson(res, 200, {
+          ok: true,
+          promptPath: resolvedPromptPath,
+          config,
+          configPath: resolvedConfigPath,
+        });
       } catch (err) {
         sendJson(res, 500, { ok: false, error: err.message });
       }
