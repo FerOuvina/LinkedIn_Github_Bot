@@ -71,14 +71,18 @@ export async function probeModel({
   fetchImpl = fetch,
   model = GROQ_MODEL
 } = {}) {
-  return requestJson(`${GROQ_API}/chat/completions`, {
-    method: 'POST',
-    headers: GROQ_HEADERS,
-    body: JSON.stringify({
-      model,
-      max_tokens: 1,
-      messages: buildMessages('ping')
-    }),
-    retries: 0
-  });
+  return requestJson(
+    `${GROQ_API}/chat/completions`,
+    {
+      method: 'POST',
+      headers: GROQ_HEADERS,
+      body: JSON.stringify({
+        model,
+        max_tokens: 1,
+        messages: buildMessages('ping')
+      }),
+      retries: 0
+    },
+    { fetchImpl }
+  );
 }
