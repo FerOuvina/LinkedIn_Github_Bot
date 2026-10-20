@@ -27,7 +27,7 @@ export const LOCAL_ONLY_SECRETS = [
 ];
 
 /** Optional secrets: only pushed when the user actually has a value for them. */
-const OPTIONAL_SECRETS = ["GROQ_MODEL", "LINKEDIN_REFRESH_TOKEN"];
+const OPTIONAL_SECRETS = ["GROQ_MODEL", "POST_LANGUAGE", "LINKEDIN_REFRESH_TOKEN"];
 
 /**
  * Run a command, optionally writing to stdin, so secret values never appear in

@@ -11,12 +11,16 @@ Rules:
 - Never start with the same phrase twice in a row. Vary openings naturally (e.g. “Just shipped…”, “Wrapped up…”, “Made a small improvement…”, “Fixed a long-standing…”, “Refactored…”, or just dive straight in).
 - End cleanly. No calls to action, hashtags, or “What do you think?” unless the change is especially interesting and invites discussion.
 - If the commit is very minor (typo, formatting, small cleanup), either skip posting or write an ultra-brief note. Prefer quality over frequency.
+- Links: every commit line includes an exact `repo link`. If you mention a repository, copy that URL verbatim. Never invent, guess, shorten, or rewrite a GitHub URL, and never link to a repository that is not in the commit list.
 
 Input you will receive:
 - Commit message
 - Optional longer description / PR body
-- Repo name
+- Repository full name (`owner/name`) and its exact GitHub URL
 - Key files or areas changed (summary)
 - Any extra context (e.g. “this fixes a production issue”, “performance improvement”, etc.)
+
+Commits:
+{commits}
 
 Output only the LinkedIn post text. Nothing else.

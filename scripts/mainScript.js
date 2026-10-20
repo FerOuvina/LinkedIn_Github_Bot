@@ -6,8 +6,11 @@ import {
   GIT_HEADERS,
   LINKEDIN_HEADERS,
   LINKEDIN_AUTHOR,
-  HUB_USER
+  HUB_USER,
+  POST_LANGUAGE
 } from './consts.js';
+import { languageInstruction } from './languages.js';
+import { enforceRepoLinks, repoUrl } from './links.js';
 import { scoreCommits, rankCommits } from './commitScoring.js';
 import {
   fetchOwnedRepos,
@@ -75,11 +78,13 @@ export default async function run() {
   const filteredCommits = [];
 
   for (const { fullName, messages } of topRepos) {
-    const [, repo] = fullName.split('/');
+    const url = repoUrl(fullName);
 
     filteredCommits.push(
       ...rankCommits(
-        scoreCommits(messages.map((message) => ({ repo, message })))
+        scoreCommits(
+          messages.map((message) => ({ repo: fullName, url, message }))
+        )
       )
     );
   }
@@ -91,15 +96,22 @@ export default async function run() {
 
   // Build prompt for AI summary
   const commitsText = filteredCommits
-    .map((c) => `${c.repo}: ${c.message}`)
+    .map((c) => `- ${c.repo}: ${c.message}\n  repo link: ${c.url}`)
     .join('\n');
-  const prompt = loadPrompt()
+  const template = loadPrompt();
+  const withCommits =
+    template.includes('{commits}') ? template : (
+      `${template}\n\nCommits:\n{commits}`
+    );
+  const prompt = `${withCommits
     .replace('{commits}', commitsText)
-    .replace('{hubUser}', HUB_USER);
+    .replace('{hubUser}', HUB_USER)}\n\n${languageInstruction(POST_LANGUAGE)}`;
 
   const aiSummary = await summarize(prompt);
-
-  const postText = `${aiSummary}\n\n📝 This post was automated using the LinkedIn API, if you want to learn more about it, check out my repository on Github:\n🔗 My GitHub: https://github.com/${HUB_USER}\n🔗 My Portfolio: https://ouvina-fernando.vercel.app`;
+  const postText = enforceRepoLinks(
+    aiSummary,
+    filteredCommits.map((c) => c.url)
+  );
 
   // Dry run for testing
   if (DRY_RUN) {
