@@ -68,6 +68,17 @@ export default function StepPrompt() {
               {p.description}
             </li>
           ))}
+          <li>
+            Commits are scored before they reach this prompt —{" "}
+            <span className="font-mono">feat:+5</span>,{" "}
+            <span className="font-mono">fix:+4</span>,{" "}
+            <span className="font-mono">add/implement/support:+2</span>,
+            <span className="font-mono">test:-1</span>,{" "}
+            <span className="font-mono">chore/merge:-2</span>. Only commits
+            scoring 1+ are included, so write the prompt assuming the list is
+            already scored. See{" "}
+            <span className="font-mono">scripts/commitScoring.js</span>.
+          </li>
         </ul>
       </div>
 
