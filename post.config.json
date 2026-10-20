@@ -4,7 +4,7 @@
     "es"
   ],
   "gapMinutes": 5,
-  "timezone": "UTC",
+  "timezone": "America/Argentina/Buenos_Aires",
   "days": [
     1,
     2,
@@ -13,11 +13,11 @@
     5
   ],
   "times": {
-    "en": "22:00",
-    "es": "23:00"
+    "en": "09:00",
+    "es": "10:00"
   },
   "crons": {
-    "en": "0 22 * * 1-5",
-    "es": "0 23 * * 1-5"
+    "en": "0 12 * * 1-5",
+    "es": "0 13 * * 1-5"
   }
 }

@@ -2,10 +2,10 @@ name: Daily GitHub → LinkedIn Summary
 
 on:
   schedule:
-    # English 22:00
-    - cron: "0 22 * * 1-5"
-    # Spanish 23:00
-    - cron: "0 23 * * 1-5"
+    # English 09:00
+    - cron: "0 12 * * 1-5"
+    # Spanish 10:00
+    - cron: "0 13 * * 1-5"
   workflow_dispatch:
 
 permissions:

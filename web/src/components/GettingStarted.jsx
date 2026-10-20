@@ -1,5 +1,5 @@
 import { Link } from "wouter";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import StepPrerequisites from "./steps/StepPrerequisites";
 import StepCloneRepo from "./steps/StepCloneRepo";
 import StepCredentials from "./steps/StepCredentials";
@@ -23,10 +23,18 @@ function GettingStarted() {
   ];
 
   const [currentStep, setCurrentStep] = useState(0);
+  const [toast, setToast] = useState(false);
   const totalSteps = steps.length;
   const progress = Math.round(((currentStep + 1) / totalSteps) * 100);
   const step = steps[currentStep];
   const StepComponent = step.component;
+  const isLastStep = currentStep === totalSteps - 1;
+
+  useEffect(() => {
+    if (!toast) return undefined;
+    const timer = setTimeout(() => setToast(false), 4500);
+    return () => clearTimeout(timer);
+  }, [toast]);
 
   return (
     <div className="scanlines grid-bg flex h-screen flex-col overflow-hidden bg-void font-body text-bone md:flex-row">
@@ -141,16 +149,62 @@ function GettingStarted() {
             prev
           </button>
 
-          <button
-            onClick={() => setCurrentStep((s) => Math.min(totalSteps - 1, s + 1))}
-            className="btn btn-primary"
-          >
-            next
-            <span className="material-symbols-outlined text-[18px]">
-              arrow_forward
-            </span>
-          </button>
+          {isLastStep ? (
+            <button
+              onClick={() => setToast(true)}
+              disabled={toast}
+              className="btn btn-acid"
+            >
+              {toast ? "done" : "finish"}
+              <span className="material-symbols-outlined text-[18px]">
+                check_circle
+              </span>
+            </button>
+          ) : (
+            <button
+              onClick={() => setCurrentStep((s) => Math.min(totalSteps - 1, s + 1))}
+              className="btn btn-primary"
+            >
+              next
+              <span className="material-symbols-outlined text-[18px]">
+                arrow_forward
+              </span>
+            </button>
+          )}
         </footer>
+
+        {toast && (
+          <div
+            role="status"
+            aria-live="polite"
+            className="animate-toast-in fixed bottom-24 right-4 z-[70] w-[min(22rem,calc(100vw-2rem))] border-2 border-acid bg-panel p-4 shadow-[6px_6px_0_0_#ccff00] md:right-8"
+          >
+            <div className="flex items-start gap-3">
+              <span className="material-symbols-outlined text-[22px] text-acid">
+                check_circle
+              </span>
+              <div className="flex-1">
+                <p className="ff-mono text-[10px] uppercase tracking-[0.3em] text-acid">
+                  setup complete
+                </p>
+                <p className="mt-1 text-sm text-bone">
+                  Everything is configured. Your next scheduled post will pick
+                  it up.
+                </p>
+              </div>
+              <button
+                onClick={() => setToast(false)}
+                aria-label="Dismiss notification"
+                className="font-mono text-lg leading-none text-ash transition hover:text-bone"
+              >
+                ×
+              </button>
+            </div>
+            <div className="mt-3 h-1 w-full bg-edge">
+              <div className="animate-toast-bar h-full w-full origin-left bg-acid" />
+            </div>
+          </div>
+        )}
       </section>
     </div>
   );

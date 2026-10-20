@@ -53,12 +53,22 @@ export default {
           "0%": { transform: "translateY(-100%)" },
           "100%": { transform: "translateY(100%)" },
         },
+        "toast-in": {
+          "0%": { opacity: "0", transform: "translateY(16px) scale(0.98)" },
+          "100%": { opacity: "1", transform: "translateY(0) scale(1)" },
+        },
+        "toast-bar": {
+          "0%": { transform: "scaleX(1)" },
+          "100%": { transform: "scaleX(0)" },
+        },
       },
       animation: {
         marquee: "marquee 22s linear infinite",
         glitch: "glitch 0.25s infinite",
         blink: "blink 1s steps(1) infinite",
         sweep: "sweep 6s linear infinite",
+        "toast-in": "toast-in 0.28s ease-out both",
+        "toast-bar": "toast-bar 4.5s linear forwards",
       },
     },
   },
