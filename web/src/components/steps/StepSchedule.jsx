@@ -3,14 +3,21 @@ import { api } from "../../lib/api.js";
 import { splitRun, zoneOptions } from "../../lib/timezones.js";
 import CopyBlock from "../copyBlock.jsx";
 
-const DEFAULT_TIME_ZONE = "Europe/Madrid";
+const DEFAULT_TIME_ZONE = "UTC";
+
+const LANGUAGE_NAMES = {
+  en: "English",
+  es: "Spanish",
+  pt: "Portuguese",
+  fr: "French",
+};
 
 export default function StepSchedule() {
   const [meta, setMeta] = useState(null);
   const [timeZone, setTimeZone] = useState(DEFAULT_TIME_ZONE);
-  const [hour, setHour] = useState(9);
-  const [minute, setMinute] = useState(0);
+  const [times, setTimes] = useState({ en: "13:00" });
   const [days, setDays] = useState([1, 2, 3, 4, 5]);
+  const [gapMinutes, setGapMinutes] = useState(5);
   const [query, setQuery] = useState("");
 
   const [preview, setPreview] = useState(null);
@@ -19,15 +26,26 @@ export default function StepSchedule() {
   const [busy, setBusy] = useState(false);
 
   useEffect(() => {
-    api.schedule().then(setMeta).catch((err) => setPreviewError(err.message));
+    api
+      .schedule()
+      .then((result) => {
+        const config = result.config ?? {};
+        setMeta(result);
+        setTimeZone(config.timezone ?? DEFAULT_TIME_ZONE);
+        setTimes(config.times ?? { en: "13:00" });
+        setDays(config.days ?? [1, 2, 3, 4, 5]);
+        setGapMinutes(config.gapMinutes ?? 5);
+      })
+      .catch((err) => setPreviewError(err.message));
   }, []);
 
-  // Reconvert whenever anything the cron depends on changes.
+  // Reconvert whenever anything the crons depend on changes.
   useEffect(() => {
+    if (!meta) return undefined;
     let cancelled = false;
 
     api
-      .previewSchedule({ timeZone, hour, minute, days })
+      .previewSchedule({ times, timeZone, days, gapMinutes })
       .then((result) => {
         if (!cancelled) {
           setPreview(result);
@@ -41,17 +59,25 @@ export default function StepSchedule() {
     return () => {
       cancelled = true;
     };
-  }, [timeZone, hour, minute, days]);
+  }, [meta, times, timeZone, days, gapMinutes]);
+
+  const languages = meta?.config?.languages ?? ["en"];
 
   const toggleDay = (value) =>
     setDays((prev) =>
       prev.includes(value) ? prev.filter((d) => d !== value) : [...prev, value]
     );
 
+  const setTime = (code, value) => {
+    setTimes((prev) => ({ ...prev, [code]: value }));
+  };
+
   const apply = async () => {
     setBusy(true);
     try {
-      setApplied(await api.applySchedule(preview.cron));
+      setApplied(
+        await api.applySchedule({ times, timeZone, days, gapMinutes })
+      );
     } catch (err) {
       setPreviewError(err.message);
     } finally {
@@ -68,10 +94,45 @@ export default function StepSchedule() {
   return (
     <section>
       <p className="mb-8 max-w-2xl text-lg text-ash">
-        Pick a city and a time. GitHub runs scheduled jobs on UTC and has no
-        timezone setting, so the wizard converts it and shows you exactly what
-        gets written.
+        Pick a time for each language. GitHub runs scheduled jobs on UTC and has
+        no timezone setting, so the wizard converts each time and shows you the
+        exact crons that get written.
       </p>
+
+      {/* ── Per-language times ── */}
+      <div className="mb-6 max-w-2xl">
+        <span className="ff-mono mb-2 block text-[11px] uppercase tracking-[0.2em] text-bone">
+          post times
+        </span>
+        <div className="grid gap-3">
+          {languages.map((code) => (
+            <label
+              key={code}
+              className="flex flex-wrap items-center justify-between gap-3 border-2 border-edge p-3"
+            >
+              <span className="font-mono text-sm text-bone">
+                {LANGUAGE_NAMES[code] ?? code}
+              </span>
+              <span className="flex items-center gap-3">
+                <input
+                  type="time"
+                  value={times[code] ?? "13:00"}
+                  onChange={(e) => setTime(code, e.target.value)}
+                  className="ff-input w-36 font-mono"
+                  aria-label={`post time for ${code}`}
+                />
+                <span className="ff-mono text-[11px] text-ash">
+                  {timeZone}
+                </span>
+              </span>
+            </label>
+          ))}
+        </div>
+        <p className="mt-2 text-sm text-ash">
+          Change the languages in the previous step. Each selected language gets
+          its own run and its own cron.
+        </p>
+      </div>
 
       {/* ── Timezone ── */}
       <div className="mb-6 max-w-2xl">
@@ -119,39 +180,8 @@ export default function StepSchedule() {
         </div>
       </div>
 
-      {/* ── Time ── */}
-      <div className="mb-6 max-w-2xl">
-        <label className="ff-mono mb-2 block text-[11px] uppercase tracking-[0.2em] text-bone">
-          time of day
-        </label>
-        <div className="flex items-center gap-3">
-          <input
-            type="number"
-            min="0"
-            max="23"
-            value={hour}
-            onChange={(e) => setHour(Number(e.target.value))}
-            className="ff-input w-24"
-            aria-label="hour"
-          />
-          <span className="font-mono text-acid">:</span>
-          <input
-            type="number"
-            min="0"
-            max="59"
-            value={minute}
-            onChange={(e) => setMinute(Number(e.target.value))}
-            className="ff-input w-24"
-            aria-label="minute"
-          />
-          <span className="ff-mono text-[11px] text-ash">
-            your local time in {timeZone}
-          </span>
-        </div>
-      </div>
-
       {/* ── Days ── */}
-      <div className="mb-8 max-w-2xl">
+      <div className="mb-6 max-w-2xl">
         <label className="ff-mono mb-2 block text-[11px] uppercase tracking-[0.2em] text-bone">
           days
         </label>
@@ -181,6 +211,28 @@ export default function StepSchedule() {
         </p>
       </div>
 
+      {/* ── Gap ── */}
+      <div className="mb-6 max-w-2xl">
+        <label
+          htmlFor="post-gap"
+          className="ff-mono mb-2 block text-[11px] uppercase tracking-[0.2em] text-bone"
+        >
+          minutes between posts
+        </label>
+        <input
+          id="post-gap"
+          type="number"
+          min="1"
+          max="60"
+          value={gapMinutes}
+          onChange={(e) => setGapMinutes(e.target.value)}
+          className="ff-input max-w-32"
+        />
+        <p className="mt-2 text-sm text-ash">
+          Only used when both languages are set to the same time.
+        </p>
+      </div>
+
       {previewError && (
         <div className="panel mb-6 border-crimson p-4 text-crimson">{previewError}</div>
       )}
@@ -192,21 +244,31 @@ export default function StepSchedule() {
             the bot will post at
           </p>
 
-          <ul className="mt-3 space-y-2">
-            {preview.runs.map((run) => {
-              const { day, time } = splitRun(run.local);
+          <div className="mt-3 space-y-4">
+            {preview.languages.map((code) => {
+              const runs = preview.runs.filter((run) => run.language === code);
               return (
-                <li key={run.utc} className="font-mono text-sm text-bone">
-                  <span className="text-ash">{day},</span> {time}
-                </li>
+                <div key={code}>
+                  <p className="font-mono text-sm text-bone">
+                    {runs[0]?.languageName ?? code}{" "}
+                    <span className="text-ash">at {times[code]}</span>
+                  </p>
+                  <ul className="mt-1 space-y-1">
+                    {runs.map((run) => {
+                      const { day, time } = splitRun(run.local);
+                      return (
+                        <li key={run.utc} className="font-mono text-sm text-ash">
+                          <span className="text-ash">{day},</span> {time}
+                          <span className="ml-2 text-[11px]">
+                            ({run.cron} UTC)
+                          </span>
+                        </li>
+                      );
+                    })}
+                  </ul>
+                </div>
               );
             })}
-          </ul>
-
-          <div className="mt-4 border-t border-edge pt-4 text-sm text-ash">
-            Written to the workflow as{" "}
-            <code className="font-mono text-primary">cron: "{preview.cron}"</code> —{" "}
-            {preview.utcTime} UTC ({preview.offsetLabel}).
           </div>
 
           {preview.warnings.map((warning) => (
@@ -217,7 +279,7 @@ export default function StepSchedule() {
 
           <p className="mt-3 text-sm text-ash">
             GitHub can delay a scheduled run by a few minutes under load, so treat
-            this as the earliest it posts rather than an exact minute.
+            these as the earliest they post rather than exact minutes.
           </p>
         </div>
       )}
@@ -263,17 +325,25 @@ export default function StepSchedule() {
             schedule to take effect:
           </p>
           <div className="mt-3">
-            <CopyBlock code={`git add ${meta?.workflowPath ?? ".github/workflows/linkedin-post.yml"}\ngit commit -m "chore: change the post schedule"\ngit push`} />
+            <CopyBlock code={`git add ${meta?.workflowPath ?? ".github/workflows/linkedin-post.yml"} post.config.json\ngit commit -m "chore: change the post schedule"\ngit push`} />
           </div>
         </div>
       )}
 
-      {meta?.current && (
-        <p className="text-sm text-ash">
+      {meta?.current?.length > 0 && (
+        <div className="text-sm text-ash">
           Currently committed as{" "}
-          <code className="font-mono text-primary">cron: "{meta.current}"</code>
-          {preview && preview.cron === meta.current && " — that matches what you picked."}
-        </p>
+          {meta.current.map((cron) => (
+            <code key={cron} className="mr-2 font-mono text-primary">
+              cron: "{cron}"
+            </code>
+          ))}
+          {preview &&
+            preview.languages.every((code) =>
+              meta.current.includes(preview.crons[code])
+            ) &&
+            " — that matches what you picked."}
+        </div>
       )}
     </section>
   );

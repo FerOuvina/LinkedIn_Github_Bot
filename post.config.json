@@ -3,5 +3,21 @@
     "en",
     "es"
   ],
-  "gapMinutes": 5
+  "gapMinutes": 5,
+  "timezone": "UTC",
+  "days": [
+    1,
+    2,
+    3,
+    4,
+    5
+  ],
+  "times": {
+    "en": "22:00",
+    "es": "23:00"
+  },
+  "crons": {
+    "en": "0 22 * * 1-5",
+    "es": "0 23 * * 1-5"
+  }
 }

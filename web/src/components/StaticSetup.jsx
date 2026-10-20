@@ -39,8 +39,9 @@ const STEPS = [
       "GROQ_API_KEY=gsk_...",
       "# optional, this is the default",
       "GROQ_MODEL=qwen/qwen3.8-27b",
-      "# optional: one post per language, minutes apart",
-      "POST_LANGUAGES=en",
+      "# optional: up to two of en, es, pt, fr — one post each",
+      "POST_LANGUAGES=en,es",
+      "# only used when both languages share the same time",
       "POST_GAP_MINUTES=5",
     ],
   },
@@ -58,16 +59,16 @@ const STEPS = [
     note: "The first run is a dry run and only lists what it would set. Add `--apply` to write.",
   },
   {
-    title: "Choose when it posts",
-    body: "GitHub scheduled jobs run on UTC, so the wizard converts your city and time into the cron the workflow needs. The wizard step does this for you; by hand it is the `cron:` line in `.github/workflows/linkedin-post.yml`.",
-    commands: [],
-    note: "A cron cannot follow daylight saving, so re-run that step after the clocks change.",
-  },
-  {
     title: "Edit the post prompt",
-    body: "Tailor the prompt the LLM uses to write your LinkedIn post. It is stored in `prompt.md` so it is version-controlled and picked up by the scheduled job.",
+    body: "Choose up to two languages for your posts, then tailor the prompt the LLM uses to write them. It is stored in `prompt.md` so it is version-controlled and picked up by the scheduled job.",
     commands: [],
     note: "Use `{commits}` for the scored commit list and `{hubUser}` for your GitHub username.",
+  },
+  {
+    title: "Choose when it posts",
+    body: "Each selected language gets its own local time. GitHub scheduled jobs run on UTC, so the wizard converts both times into the cron lines the workflow needs; by hand they are the `schedule:` entries in `.github/workflows/linkedin-post.yml`. Both posts use the same 24-hour commit window, ending at the earliest time you picked.",
+    commands: [],
+    note: "Times are picked in your timezone. A cron cannot follow daylight saving, so re-run that step after the clocks change.",
   },
   {
     title: "Verify, then try a post",
@@ -113,7 +114,7 @@ export default function StaticSetup() {
           Getting started
         </h1>
         <p className="mt-4 max-w-2xl text-lg text-ash">
-          Eight steps, about ten minutes. Nothing here needs a browser-based
+          Nine steps, about ten minutes. Nothing here needs a browser-based
           setup: run the commands in your terminal and everything works the same
           way.
         </p>

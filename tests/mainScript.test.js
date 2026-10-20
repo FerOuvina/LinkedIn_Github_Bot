@@ -1,4 +1,7 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
+import { mkdtempSync, rmSync, writeFileSync } from "node:fs";
+import { tmpdir } from "node:os";
+import path from "node:path";
 
 const REPO_LIST = [
   { name: "alpha", owner: { login: "me" } },
@@ -42,6 +45,28 @@ async function loadRun({ dryRun }) {
   }
 }
 
+const SCHEDULED_CONFIG = {
+  languages: ["en", "es"],
+  gapMinutes: 5,
+  timezone: "UTC",
+  days: [1, 2, 3, 4, 5],
+  times: { en: "09:00", es: "18:00" },
+  crons: { en: "0 9 * * 1-5", es: "0 18 * * 1-5" },
+};
+
+function tempConfig(config = SCHEDULED_CONFIG) {
+  const dir = mkdtempSync(path.join(tmpdir(), "run-config-"));
+  const file = path.join(dir, "post.config.json");
+  writeFileSync(file, JSON.stringify(config), "utf8");
+  return { file, cleanup: () => rmSync(dir, { recursive: true, force: true }) };
+}
+
+/** The shared window query from the first commits request. */
+function commitWindow(calls) {
+  const url = calls.find((call) => call.url.includes("/commits?"))?.url;
+  return url?.match(/since=[^&]+&until=[^&]+/)?.[0] ?? null;
+}
+
 function githubHandlers(commitsByRepo, llmContent = "AI post body") {
   return (url) => {
     if (url.includes("/users/") && url.includes("/repos")) {
@@ -67,6 +92,7 @@ describe("run()", () => {
     languages: process.env.POST_LANGUAGES,
     gap: process.env.POST_GAP_MINUTES,
     language: process.env.POST_LANGUAGE,
+    cron: process.env.SCHEDULE_CRON,
   };
 
   beforeEach(() => {
@@ -75,6 +101,7 @@ describe("run()", () => {
     process.env.POST_LANGUAGES = "en";
     delete process.env.POST_GAP_MINUTES;
     delete process.env.POST_LANGUAGE;
+    delete process.env.SCHEDULE_CRON;
 
     logSpy = vi.spyOn(console, "log").mockImplementation(() => {});
     vi.spyOn(console, "error").mockImplementation(() => {});
@@ -88,6 +115,7 @@ describe("run()", () => {
       ["POST_LANGUAGES", ORIGINAL.languages],
       ["POST_GAP_MINUTES", ORIGINAL.gap],
       ["POST_LANGUAGE", ORIGINAL.language],
+      ["SCHEDULE_CRON", ORIGINAL.cron],
     ]) {
       if (value === undefined) delete process.env[key];
       else process.env[key] = value;
@@ -331,5 +359,76 @@ describe("run()", () => {
     const printed = logSpy.mock.calls.flat().join("\n");
     expect(printed).toContain("English LinkedIn post");
     expect(printed).toContain("Spanish LinkedIn post");
+  });
+
+  it("posts only the language whose cron fired", async () => {
+    process.env.POST_LANGUAGES = "en,es";
+    process.env.SCHEDULE_CRON = "0 18 * * 1-5";
+    const config = tempConfig();
+    const calls = mockFetch(
+      githubHandlers({ alpha: [commit("feat: add auth")] })
+    );
+    const run = await loadRun({ dryRun: false });
+    const sleepImpl = vi.fn().mockResolvedValue();
+
+    try {
+      const result = await run({ sleepImpl, configPath: config.file });
+
+      expect(result).toBe("published");
+      expect(calls.filter((c) => c.url.includes("api.groq.com"))).toHaveLength(1);
+      expect(calls.filter((c) => c.url.includes("api.linkedin.com"))).toHaveLength(1);
+      expect(sleepImpl).not.toHaveBeenCalled();
+
+      const hfCall = calls.find((c) => c.url.includes("api.groq.com"));
+      const sent = JSON.parse(hfCall.options.body).messages[1].content;
+      expect(sent.startsWith("Write the LinkedIn post in Spanish.")).toBe(true);
+
+      expect(commitWindow(calls)).toContain("until=");
+    } finally {
+      config.cleanup();
+    }
+  });
+
+  it("skips the run when no language owns the fired cron", async () => {
+    process.env.POST_LANGUAGES = "en,es";
+    process.env.SCHEDULE_CRON = "0 3 * * *";
+    const config = tempConfig();
+    const calls = mockFetch(githubHandlers({}));
+    const run = await loadRun({ dryRun: false });
+
+    try {
+      const result = await run({ configPath: config.file });
+
+      expect(result).toBe("not-scheduled");
+      expect(calls).toHaveLength(0);
+    } finally {
+      config.cleanup();
+    }
+  });
+
+  it("uses the same commit window for both scheduled runs", async () => {
+    process.env.POST_LANGUAGES = "en,es";
+    const config = tempConfig();
+    const calls = mockFetch(
+      githubHandlers({ alpha: [commit("feat: add auth")] })
+    );
+    const run = await loadRun({ dryRun: false });
+    const sleepImpl = vi.fn().mockResolvedValue();
+
+    try {
+      process.env.SCHEDULE_CRON = "0 9 * * 1-5";
+      await run({ sleepImpl, configPath: config.file });
+      const first = commitWindow(calls);
+
+      const before = calls.length;
+      process.env.SCHEDULE_CRON = "0 18 * * 1-5";
+      await run({ sleepImpl, configPath: config.file });
+      const second = commitWindow(calls.slice(before));
+
+      expect(first).not.toBeNull();
+      expect(second).toBe(first);
+    } finally {
+      config.cleanup();
+    }
   });
 });

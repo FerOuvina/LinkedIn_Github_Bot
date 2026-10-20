@@ -11,6 +11,7 @@ import {
 import { languageInstruction, languageName } from './languages.js';
 import { addMissingRepoLinks, enforceRepoLinks, repoUrl } from './links.js';
 import { loadPostConfig } from './postConfig.js';
+import { commitWindowEnd } from './schedule.js';
 import { scoreCommits, rankCommits } from './commitScoring.js';
 import {
   fetchOwnedRepos,
@@ -27,11 +28,9 @@ const CONFIG_PATH = path.join(
   'post.config.json'
 );
 
-// Get previous 24hs date
-const now = new Date(Date.now());
-const since = getSinceDate(24, now);
-
 const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
+
+const DAY_MS = 24 * 60 * 60 * 1000;
 
 /** The prompt template used to ask the LLM to write the post. */
 const DEFAULT_PROMPT = `You are a thoughtful software engineer who occasionally shares short, genuine updates about your work on LinkedIn. You write in a natural, first-person voice — clear, calm, and professional, never salesy or overly enthusiastic.
@@ -63,13 +62,43 @@ function loadPrompt() {
 
 /**
  * Build and publish the daily post.
- * @returns {Promise<"published"|"dry-run"|"no-activity"|"no-significant-commits">}
+ * @returns {Promise<"published"|"dry-run"|"no-activity"|"no-significant-commits"|"not-scheduled">}
  */
-export default async function run({ sleepImpl = sleep } = {}) {
+export default async function run({ sleepImpl = sleep, configPath = CONFIG_PATH } = {}) {
+  const config = loadPostConfig({ filePath: configPath });
+  const scheduledCron = String(process.env.SCHEDULE_CRON ?? '').trim();
+  const hasCrons = Object.keys(config.crons ?? {}).length > 0;
+
+  // A scheduled run posts only the languages whose cron fired. Without crons
+  // (older config) it behaves like the single-run version and posts them all.
+  let languages = config.languages;
+  if (scheduledCron && hasCrons) {
+    languages = config.languages.filter(
+      (code) => config.crons[code] === scheduledCron
+    );
+    if (languages.length === 0) {
+      console.log('No language is scheduled for this run.');
+      return 'not-scheduled';
+    }
+  }
+
+  // Every language in a day shares one 24h window ending at the earliest post
+  // time, so the later post does not silently include newer commits.
+  const until =
+    scheduledCron && hasCrons
+      ? commitWindowEnd({
+          timeZone: config.timezone,
+          times: config.times,
+          languages: config.languages,
+        })
+      : null;
+  const since = until ? new Date(until.getTime() - DAY_MS) : getSinceDate(24, new Date());
+
   // Get repo activity — each repo's commits are fetched exactly once
   const repos = await fetchOwnedRepos(HUB_USER, { headers: GIT_HEADERS });
   const activity = await fetchRepoActivity(repos, {
     since,
+    until,
     headers: GIT_HEADERS
   });
 
@@ -114,7 +143,7 @@ export default async function run({ sleepImpl = sleep } = {}) {
     .replace('{commits}', commitsText)
     .replace('{hubUser}', HUB_USER);
   const repoUrls = filteredCommits.map((c) => c.url);
-  const { languages, gapMinutes } = loadPostConfig({ filePath: CONFIG_PATH });
+  const { gapMinutes } = config;
 
   for (let index = 0; index < languages.length; index++) {
     const language = languages[index];

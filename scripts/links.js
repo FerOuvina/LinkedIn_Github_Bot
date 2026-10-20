@@ -53,6 +53,8 @@ export function enforceRepoLinks(text, allowedUrls) {
 const LINK_LABELS = {
   en: { one: "Repository", many: "Repositories" },
   es: { one: "Repositorio", many: "Repositorios" },
+  pt: { one: "Repositório", many: "Repositórios" },
+  fr: { one: "Dépôt", many: "Dépôts" },
 };
 
 /**

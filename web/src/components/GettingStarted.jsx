@@ -17,8 +17,8 @@ function GettingStarted() {
     { id: 3, title: "API credentials", sidebar: "API Credentials", component: StepCredentials },
     { id: 4, title: "Connect LinkedIn", sidebar: "Connect LinkedIn", component: StepLinkedIn },
     { id: 5, title: "Save credentials", sidebar: "Save Credentials", component: StepSave },
-    { id: 6, title: "Choose a time", sidebar: "Post Schedule", component: StepSchedule },
-    { id: 7, title: "Edit the prompt", sidebar: "Edit Prompt", component: StepPrompt },
+    { id: 6, title: "Edit the prompt", sidebar: "Edit Prompt", component: StepPrompt },
+    { id: 7, title: "Choose your times", sidebar: "Post Schedule", component: StepSchedule },
     { id: 8, title: "Verify", sidebar: "Verify & Test", component: StepVerify },
   ];
 

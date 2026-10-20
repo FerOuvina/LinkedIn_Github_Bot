@@ -10,20 +10,26 @@ import { syncSecrets, formatSyncResult } from "./syncSecrets.js";
 import { writeEnvFile } from "./envFile.js";
 import { stripBase, WEB_BASE } from "./webBase.js";
 import { envMissing } from "./validations.js";
-import { parseLanguages } from "./languages.js";
-import { readPostConfig, writePostConfig } from "./postConfig.js";
+import { MAX_POST_LANGUAGES, languageName, parseLanguages } from "./languages.js";
+import {
+  normalizeConfig,
+  normalizeGap,
+  readPostConfig,
+  writePostConfig,
+} from "./postConfig.js";
 import { authorizeUrl, exchange } from "./linkedinAuth.js";
 import {
   DAYS,
   DEFAULT_WORKFLOW,
-  buildCron,
+  buildSchedule,
+  dedupeCrons,
+  isValidTimeZone,
   listTimeZones,
   nextRuns,
-  offsetLabel,
   parseCron,
-  readWorkflowCron,
-  toUtcTime,
-  writeWorkflowCron,
+  parseTimeOfDay,
+  readWorkflowCrons,
+  writeWorkflowCrons,
 } from "./schedule.js";
 
 const JSON_HEADERS = { "Content-Type": "application/json; charset=utf-8" };
@@ -31,6 +37,66 @@ const JSON_HEADERS = { "Content-Type": "application/json; charset=utf-8" };
 function sendJson(res, status, body) {
   res.writeHead(status, JSON_HEADERS);
   res.end(JSON.stringify(body));
+}
+
+/** One workflow entry per unique cron, labelled with the languages using it. */
+function scheduleEntries(config) {
+  return dedupeCrons(config.crons, config.languages).map(({ cron, languages }) => ({
+    cron,
+    label: languages
+      .map((code) => `${languageName(code)} ${config.times[code]}`)
+      .join(", "),
+  }));
+}
+
+/** Validate the schedule editor's payload against the selected languages. */
+function readScheduleSettings(body, config) {
+  const languages = config.languages;
+
+  if (!isValidTimeZone(body.timeZone)) {
+    throw new Error(`Unknown time zone: ${body.timeZone}`);
+  }
+
+  const days = Array.isArray(body.days)
+    ? [
+        ...new Set(
+          body.days
+            .map(Number)
+            .filter((day) => Number.isInteger(day) && day >= 0 && day <= 6)
+        ),
+      ].sort((a, b) => a - b)
+    : config.days;
+
+  const times = {};
+  for (const code of languages) {
+    const value = body.times?.[code];
+    if (!parseTimeOfDay(value)) {
+      throw new Error(`Invalid time for ${languageName(code)}: ${value}`);
+    }
+    times[code] = String(value).trim();
+  }
+
+  return {
+    languages,
+    timeZone: body.timeZone,
+    days,
+    times,
+    gapMinutes: normalizeGap(body.gapMinutes ?? config.gapMinutes),
+  };
+}
+
+function runsForLanguages({ languages, times, crons, timeZone }) {
+  return languages
+    .flatMap((code) =>
+      nextRuns({ cron: crons[code], timeZone, count: 3 }).map((run) => ({
+        ...run,
+        cron: crons[code],
+        language: code,
+        languageName: languageName(code),
+        time: times[code],
+      }))
+    )
+    .sort((a, b) => a.utc.localeCompare(b.utc));
 }
 
 async function readBody(req, { limit = 1_000_000 } = {}) {
@@ -429,41 +495,39 @@ if (!state?.isValid(url.searchParams.get("state"))) {
 
     // ── Schedule ──────────────────────────────────────────────
     "GET /api/schedule": async (_req, res) => {
-      const current = readWorkflowCron(resolvedWorkflowPath);
+      const current = readWorkflowCrons(resolvedWorkflowPath);
       sendJson(res, 200, {
         ok: true,
         workflowPath: resolvedWorkflowPath,
         current,
-        parsed: parseCron(current),
+        parsed: parseCron(current[0]),
         days: DAYS,
         zones: listTimeZones(),
+        config: readPostConfig(resolvedConfigPath),
       });
     },
 
-    // Converts a local wall-clock time into the UTC cron Actions will run.
+    // Converts one local time per selected language into the crons Actions runs.
     "POST /api/schedule/preview": async (req, res) => {
       const body = await readBody(req);
 
       try {
-        const converted = toUtcTime({
-          timeZone: body.timeZone,
-          hour: Number(body.hour),
-          minute: Number(body.minute ?? 0),
-        });
-
-        const cron = buildCron({
-          hour: converted.utcHour,
-          minute: converted.utcMinute,
-          days: body.days ?? [],
+        const config = readPostConfig(resolvedConfigPath);
+        const settings = readScheduleSettings(body, config);
+        const converted = buildSchedule({
+          languages: settings.languages,
+          times: settings.times,
+          timeZone: settings.timeZone,
+          days: settings.days,
         });
 
         sendJson(res, 200, {
           ok: true,
-          cron,
-          utcTime: `${String(converted.utcHour).padStart(2, "0")}:${String(converted.utcMinute).padStart(2, "0")}`,
+          ...settings,
+          crons: converted.crons,
           offsetLabel: converted.offsetLabel,
           warnings: converted.warnings,
-          runs: nextRuns({ cron, timeZone: body.timeZone, count: 5 }),
+          runs: runsForLanguages({ ...settings, crons: converted.crons }),
         });
       } catch (err) {
         sendJson(res, 400, { ok: false, error: err.message });
@@ -474,22 +538,49 @@ if (!state?.isValid(url.searchParams.get("state"))) {
       const body = await readBody(req);
 
       try {
-        const result = writeWorkflowCron(resolvedWorkflowPath, body.cron);
-        if (!result.ok) {
-          sendJson(res, 400, { ok: false, error: result.reason });
+        const current = readPostConfig(resolvedConfigPath);
+        const settings = readScheduleSettings(body, current);
+        const converted = buildSchedule({
+          languages: settings.languages,
+          times: settings.times,
+          timeZone: settings.timeZone,
+          days: settings.days,
+        });
+
+        const next = normalizeConfig({
+          ...current,
+          timezone: settings.timeZone,
+          days: settings.days,
+          times: settings.times,
+          gapMinutes: settings.gapMinutes,
+          crons: converted.crons,
+        });
+
+        const entries = scheduleEntries(next);
+        const written = writeWorkflowCrons(resolvedWorkflowPath, entries);
+        if (!written.ok) {
+          sendJson(res, 400, { ok: false, error: written.reason });
           return;
         }
 
+        const config = writePostConfig(resolvedConfigPath, next);
+        const unchanged =
+          written.previous.length === written.crons.length &&
+          written.previous.every((cron, index) => cron === written.crons[index]);
+
         sendJson(res, 200, {
           ok: true,
-          ...result,
-          message:
-            result.previous === result.cron
-              ? `Already set to "${result.cron}" — nothing changed.`
-              : `Updated the schedule from "${result.previous}" to "${result.cron}".`,
+          config,
+          crons: config.crons,
+          previous: written.previous,
+          offsetLabel: converted.offsetLabel,
+          warnings: converted.warnings,
+          message: unchanged
+            ? "Nothing changed — the schedule already matches."
+            : `Updated the schedule: ${entries.map((entry) => entry.label).join("; ")}.`,
         });
       } catch (err) {
-        sendJson(res, 500, { ok: false, error: err.message });
+        sendJson(res, 400, { ok: false, error: err.message });
       }
     },
 
@@ -532,6 +623,13 @@ if (!state?.isValid(url.searchParams.get("state"))) {
           });
           return;
         }
+        if (languages.length > MAX_POST_LANGUAGES) {
+          sendJson(res, 400, {
+            ok: false,
+            error: `choose at most ${MAX_POST_LANGUAGES} languages`,
+          });
+          return;
+        }
       }
 
       if (body.gapMinutes !== undefined && !Number.isFinite(Number(body.gapMinutes))) {
@@ -542,18 +640,38 @@ if (!state?.isValid(url.searchParams.get("state"))) {
         return;
       }
 
+      const next = normalizeConfig({
+        ...current,
+        languages,
+        gapMinutes:
+          body.gapMinutes === undefined ? current.gapMinutes : body.gapMinutes,
+      });
+      const languagesChanged =
+        languages.length !== current.languages.length ||
+        languages.some((code, index) => code !== current.languages[index]);
+
       try {
+        // Adding or removing a language changes which crons the workflow needs.
+        if (languagesChanged) {
+          const written = writeWorkflowCrons(
+            resolvedWorkflowPath,
+            scheduleEntries(next)
+          );
+          if (!written.ok) {
+            sendJson(res, 400, { ok: false, error: written.reason });
+            return;
+          }
+        }
+
         writeFileSync(resolvedPromptPath, prompt, "utf8");
-        const config = writePostConfig(resolvedConfigPath, {
-          languages,
-          gapMinutes:
-            body.gapMinutes === undefined ? current.gapMinutes : body.gapMinutes,
-        });
+        const config = writePostConfig(resolvedConfigPath, next);
         sendJson(res, 200, {
           ok: true,
           promptPath: resolvedPromptPath,
           config,
           configPath: resolvedConfigPath,
+          workflowPath: resolvedWorkflowPath,
+          languagesChanged,
         });
       } catch (err) {
         sendJson(res, 500, { ok: false, error: err.message });

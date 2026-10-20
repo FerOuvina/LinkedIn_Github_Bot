@@ -265,6 +265,7 @@ expect(body.ok).toBe(false);
 describe("schedule routes", () => {
   let dir;
   let workflow;
+  let configPath;
 
   const WORKFLOW = `name: Daily
 
@@ -272,105 +273,171 @@ on:
   schedule:
     - cron: "0 18 * * *"
   workflow_dispatch:
+
+jobs:
+  post:
+    runs-on: ubuntu-latest
 `;
+
+  const CONFIG = {
+    languages: ["en", "es"],
+    gapMinutes: 5,
+    timezone: "UTC",
+    days: [1, 2, 3, 4, 5],
+    times: { en: "09:00", es: "18:00" },
+    crons: { en: "0 9 * * 1-5", es: "0 18 * * 1-5" },
+  };
+
+  const SETTINGS = {
+    timeZone: "UTC",
+    days: [1, 2, 3, 4, 5],
+    times: { en: "09:00", es: "18:00" },
+    gapMinutes: 5,
+  };
+
+  function startServer(overrides = {}) {
+    return start({ workflowPath: workflow, configPath, ...overrides });
+  }
 
   beforeEach(() => {
     dir = mkdtempSync(path.join(tmpdir(), "sched-"));
     workflow = path.join(dir, "linkedin-post.yml");
+    configPath = path.join(dir, "post.config.json");
     writeFileSync(workflow, WORKFLOW, "utf8");
+    writeFileSync(configPath, JSON.stringify(CONFIG), "utf8");
   });
 
   afterEach(() => rmSync(dir, { recursive: true, force: true }));
 
-  it("reports the committed cron and the zone choices", async () => {
-    const s = await start({ workflowPath: workflow });
+  it("reports the committed crons, config, and zone choices", async () => {
+    const s = await startServer();
     const body = await (await s.get("/api/schedule")).json();
 
     expect(body.ok).toBe(true);
-    expect(body.current).toBe("0 18 * * *");
+    expect(body.current).toEqual(["0 18 * * *"]);
     expect(body.parsed).toEqual({ hour: 18, minute: 0, days: [] });
+    expect(body.config).toEqual(CONFIG);
     expect(body.zones.cities.length).toBeGreaterThan(20);
     expect(body.days).toHaveLength(7);
   });
 
-  it("converts a local time into the UTC cron Actions will run", async () => {
-    const s = await start({ workflowPath: workflow });
+  it("converts one local time per language into its UTC cron", async () => {
+    const s = await startServer();
     const res = await s.post("/api/schedule/preview", {
+      ...SETTINGS,
       timeZone: "Asia/Tokyo",
-      hour: 9,
-      minute: 0,
-      days: [1, 2, 3, 4, 5],
     });
     const body = await res.json();
 
     expect(res.status).toBe(200);
-    // 09:00 in Tokyo is midnight UTC, and the run is weekdays only.
-    expect(body.cron).toBe("0 0 * * 1-5");
-    expect(body.utcTime).toBe("00:00");
+    // 09:00 and 18:00 in Tokyo are 00:00 and 09:00 UTC.
+    expect(body.crons).toEqual({
+      en: "0 0 * * 1-5",
+      es: "0 9 * * 1-5",
+    });
     expect(body.offsetLabel).toBe("UTC+09:00");
-    expect(body.runs.length).toBe(5);
+    expect(body.runs).toHaveLength(6);
+    expect(body.runs.some((run) => run.language === "es")).toBe(true);
   });
 
   it("warns that cron cannot follow daylight saving", async () => {
-    const s = await start({ workflowPath: workflow });
+    const s = await startServer();
     const body = await (
-      await s.post("/api/schedule/preview", { timeZone: "Europe/Madrid", hour: 9 })
+      await s.post("/api/schedule/preview", {
+        ...SETTINGS,
+        timeZone: "Europe/Madrid",
+      })
     ).json();
 
-    expect(body.cron).toBe("0 7 * * *"); // CEST in July
+    expect(body.crons.en).toMatch(/^\d+ \d+ \* \* 1-5$/);
     expect(body.warnings.join(" ")).toMatch(/daylight saving/i);
   });
 
   it("rejects an unknown timezone rather than writing a nonsense cron", async () => {
-    const s = await start({ workflowPath: workflow });
-    const res = await s.post("/api/schedule/preview", { timeZone: "Mars/Olympus", hour: 9 });
+    const s = await startServer();
+    const res = await s.post("/api/schedule/preview", {
+      ...SETTINGS,
+      timeZone: "Mars/Olympus",
+    });
 
     expect(res.status).toBe(400);
     expect((await res.json()).error).toMatch(/Unknown time zone/);
   });
 
-  it("leaves the workflow alone when previewing", async () => {
-    const s = await start({ workflowPath: workflow });
-    await s.post("/api/schedule/preview", { timeZone: "Asia/Tokyo", hour: 9 });
+  it("rejects a missing or invalid language time", async () => {
+    const s = await startServer();
+    const res = await s.post("/api/schedule/preview", {
+      ...SETTINGS,
+      times: { en: "09:00" },
+    });
 
-    expect(readFileSync(workflow, "utf8")).toBe(WORKFLOW);
+    expect(res.status).toBe(400);
+    expect((await res.json()).error).toMatch(/Invalid time for Spanish/);
   });
 
-  it("writes the cron and reports what changed", async () => {
-    const s = await start({ workflowPath: workflow });
-    const res = await s.post("/api/schedule/apply", { cron: "30 9 * * 1-5" });
+  it("leaves both files alone when previewing", async () => {
+    const s = await startServer();
+    await s.post("/api/schedule/preview", SETTINGS);
+
+    expect(readFileSync(workflow, "utf8")).toBe(WORKFLOW);
+    expect(JSON.parse(readFileSync(configPath, "utf8"))).toEqual(CONFIG);
+  });
+
+  it("writes every cron and the config, and reports what changed", async () => {
+    const s = await startServer();
+    const res = await s.post("/api/schedule/apply", SETTINGS);
     const body = await res.json();
 
     expect(res.status).toBe(200);
-    expect(body.previous).toBe("0 18 * * *");
-    expect(body.cron).toBe("30 9 * * 1-5");
-    expect(readFileSync(workflow, "utf8")).toContain('- cron: "30 9 * * 1-5"');
-    expect(readFileSync(workflow, "utf8")).toContain("workflow_dispatch:");
+    expect(body.previous).toEqual(["0 18 * * *"]);
+    expect(body.message).toMatch(/Updated the schedule/);
+
+    const after = readFileSync(workflow, "utf8");
+    expect(after).toContain('- cron: "0 9 * * 1-5"');
+    expect(after).toContain('- cron: "0 18 * * 1-5"');
+    expect(after).toContain("workflow_dispatch:");
+    expect(JSON.parse(readFileSync(configPath, "utf8")).crons).toEqual({
+      en: "0 9 * * 1-5",
+      es: "0 18 * * 1-5",
+    });
   });
 
   it("says so when the schedule is already what was asked for", async () => {
-    const s = await start({ workflowPath: workflow });
-    const body = await (await s.post("/api/schedule/apply", { cron: "0 18 * * *" })).json();
+    const s = await startServer();
+    await s.post("/api/schedule/apply", SETTINGS);
+    const body = await (await s.post("/api/schedule/apply", SETTINGS)).json();
 
     expect(body.ok).toBe(true);
     expect(body.message).toMatch(/nothing changed/i);
   });
 
-  it("refuses to write when the workflow has no single cron", async () => {
-    writeFileSync(workflow, `${WORKFLOW}    - cron: "5 5 * * *"\n`, "utf8");
-    const s = await start({ workflowPath: workflow });
+  it("writes a single cron when both languages share a time", async () => {
+    const s = await startServer();
+    await s.post("/api/schedule/apply", {
+      ...SETTINGS,
+      times: { en: "09:00", es: "09:00" },
+    });
 
-    const res = await s.post("/api/schedule/apply", { cron: "30 9 * * *" });
-    expect(res.status).toBe(400);
-    expect((await res.json()).error).toMatch(/cron/);
+    const after = readFileSync(workflow, "utf8");
+    expect(after.match(/- cron:/g)).toHaveLength(1);
+    expect(after).toContain("English 09:00, Spanish 09:00");
   });
 
   it("reports a missing workflow instead of throwing", async () => {
-    const s = await start({ workflowPath: path.join(dir, "absent.yml") });
-    const res = await s.post("/api/schedule/apply", { cron: "30 9 * * *" });
+    const s = await startServer({ workflowPath: path.join(dir, "absent.yml") });
+    const res = await s.post("/api/schedule/apply", SETTINGS);
 
     expect(res.status).toBe(400);
     expect((await res.json()).error).toMatch(/Not found/);
+  });
+
+  it("reports a workflow without a schedule block", async () => {
+    writeFileSync(workflow, "name: Daily\non:\n  workflow_dispatch:\n", "utf8");
+    const s = await startServer();
+    const res = await s.post("/api/schedule/apply", SETTINGS);
+
+    expect(res.status).toBe(400);
+    expect((await res.json()).error).toMatch(/schedule/);
   });
 });
 
@@ -378,6 +445,7 @@ describe("prompt routes", () => {
   let dir;
   let promptPath;
   let configPath;
+  let workflow;
 
   const DEFAULT_PROMPT = `Write a concise LinkedIn post summarizing the following commits from my GitHub repositories. For the github user use {hubUser}.
 Make it professional, readable, and engaging. Use emojis for features and fixes.
@@ -386,45 +454,62 @@ DON'T forget to add a space after every emoji.
 Commits:
 {commits}`;
 
+  const CONFIG = {
+    languages: ["en", "es"],
+    gapMinutes: 5,
+    timezone: "UTC",
+    days: [1, 2, 3, 4, 5],
+    times: { en: "09:00", es: "18:00" },
+    crons: { en: "0 9 * * 1-5", es: "0 18 * * 1-5" },
+  };
+
+  const WORKFLOW = `name: Daily
+
+on:
+  schedule:
+    - cron: "0 9 * * 1-5"
+    - cron: "0 18 * * 1-5"
+  workflow_dispatch:
+`;
+
+  function startPrompt(overrides = {}) {
+    return start({ promptPath, configPath, workflowPath: workflow, ...overrides });
+  }
+
   beforeEach(() => {
     dir = mkdtempSync(path.join(tmpdir(), "prompt-"));
     promptPath = path.join(dir, "prompt.md");
     configPath = path.join(dir, "post.config.json");
+    workflow = path.join(dir, "linkedin-post.yml");
     writeFileSync(promptPath, DEFAULT_PROMPT, "utf8");
+    writeFileSync(configPath, JSON.stringify(CONFIG), "utf8");
+    writeFileSync(workflow, WORKFLOW, "utf8");
   });
 
   afterEach(() => rmSync(dir, { recursive: true, force: true }));
 
   it("reads the committed prompt and settings", async () => {
-    writeFileSync(
-      configPath,
-      JSON.stringify({ languages: ["en", "es"], gapMinutes: 5 }),
-      "utf8"
-    );
-    const s = await start({ promptPath, configPath });
+    const s = await startPrompt();
     const body = await (await s.get("/api/prompt")).json();
 
     expect(body.ok).toBe(true);
     expect(body.prompt).toBe(DEFAULT_PROMPT);
     expect(body.promptPath).toBe(promptPath);
-    expect(body.config).toEqual({ languages: ["en", "es"], gapMinutes: 5 });
+    expect(body.config).toEqual(CONFIG);
     expect(body.configPath).toBe(configPath);
   });
 
   it("reports null prompt when the file is missing", async () => {
-    const s = await start({
-      promptPath: path.join(dir, "absent.md"),
-      configPath,
-    });
+    const s = await startPrompt({ promptPath: path.join(dir, "absent.md") });
     const body = await (await s.get("/api/prompt")).json();
 
     expect(body.ok).toBe(true);
     expect(body.prompt).toBeNull();
-    expect(body.config.languages).toEqual(["en"]);
+    expect(body.config).toEqual(CONFIG);
   });
 
   it("writes the prompt and settings and persists them", async () => {
-    const s = await start({ promptPath, configPath });
+    const s = await startPrompt();
     const newPrompt = "Custom prompt with {commits} and {hubUser}.";
     const res = await s.post("/api/prompt", {
       prompt: newPrompt,
@@ -435,15 +520,39 @@ Commits:
 
     expect(res.status).toBe(200);
     expect(body.ok).toBe(true);
+    expect(body.languagesChanged).toBe(false);
     expect(readFileSync(promptPath, "utf8")).toBe(newPrompt);
     expect(JSON.parse(readFileSync(configPath, "utf8"))).toEqual({
-      languages: ["en", "es"],
+      ...CONFIG,
       gapMinutes: 10,
     });
+    expect(readFileSync(workflow, "utf8")).toBe(WORKFLOW);
+  });
+
+  it("adds a cron when a language is added", async () => {
+    const s = await startPrompt();
+    const res = await s.post("/api/prompt", {
+      prompt: "p",
+      languages: ["en", "pt"],
+    });
+    const body = await res.json();
+
+    expect(res.status).toBe(200);
+    expect(body.languagesChanged).toBe(true);
+    expect(body.config.languages).toEqual(["en", "pt"]);
+    expect(body.config.times).toEqual({ en: "09:00", pt: "09:00" });
+    expect(body.config.crons).toEqual({
+      en: "0 9 * * 1-5",
+      pt: "0 9 * * 1-5",
+    });
+    expect(readFileSync(workflow, "utf8").match(/- cron:/g)).toHaveLength(1);
+    expect(readFileSync(workflow, "utf8")).toContain(
+      "English 09:00, Portuguese 09:00"
+    );
   });
 
   it("rejects a non-string prompt", async () => {
-    const s = await start({ promptPath, configPath });
+    const s = await startPrompt();
     const res = await s.post("/api/prompt", { prompt: 123 });
 
     expect(res.status).toBe(400);
@@ -451,7 +560,7 @@ Commits:
   });
 
   it("rejects a language list with no supported codes", async () => {
-    const s = await start({ promptPath, configPath });
+    const s = await startPrompt();
     const res = await s.post("/api/prompt", {
       prompt: "p",
       languages: ["de"],
@@ -461,8 +570,19 @@ Commits:
     expect((await res.json()).error).toMatch(/supported code/);
   });
 
+  it("rejects more than two languages", async () => {
+    const s = await startPrompt();
+    const res = await s.post("/api/prompt", {
+      prompt: "p",
+      languages: ["en", "es", "pt"],
+    });
+
+    expect(res.status).toBe(400);
+    expect((await res.json()).error).toMatch(/at most 2 languages/);
+  });
+
   it("rejects a non-numeric gap", async () => {
-    const s = await start({ promptPath, configPath });
+    const s = await startPrompt();
     const res = await s.post("/api/prompt", {
       prompt: "p",
       gapMinutes: "soon",

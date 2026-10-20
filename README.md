@@ -2,18 +2,20 @@
 
 Turns your daily GitHub commits into a LinkedIn post, on a schedule.
 
-Each morning the bot scans your most active repos, scores commits by how
+On schedule the bot scans your most active repos, scores commits by how
 significant they look, asks an LLM to turn the keepers into a short post, and
 publishes it to LinkedIn. Nothing to write by hand.
 
 ## How it works
 
-1. Lists your repos and fetches each one's commits from the last 24 hours.
+1. Lists your repos and fetches each one's commits from the shared 24-hour
+   window, which ends at the earliest post time you configured for today.
 2. Ranks repos by commit count and keeps the top 3.
 3. Scores each commit message — `feat:` +5, `fix:` +4, `chore/docs/ci` −2,
    and so on — and drops anything scoring below 1.
-4. Sends the survivors to an LLM with a prompt asking for a LinkedIn post.
-5. Appends your GitHub and portfolio links, then publishes it.
+4. Sends the survivors to an LLM once per selected language (up to two), each
+   with a prompt asking for a LinkedIn post in that language.
+5. Appends your GitHub and portfolio links, then publishes each post.
 
 Only one fetch per repo, requests run concurrently with a 10s timeout and
 bounded retries, and the publish is never retried (a retry could post twice).
@@ -30,8 +32,8 @@ You need Node 24 (see `.nvmrc`) and a `.env` file with:
 | `LINKEDIN_AUTHOR_URN` | Your `urn:li:person:...` identifier |
 | `GROQ_API_KEY` | Key for the LLM ([console.groq.com](https://console.groq.com)) |
 | `GROQ_MODEL` | Optional. Defaults to the model in `scripts/consts.js` |
-| `POST_LANGUAGES` | Optional. Overrides `post.config.json`; comma-separated languages, e.g. `en,es` |
-| `POST_GAP_MINUTES` | Optional. Overrides the gap between language posts (default `5`) |
+| `POST_LANGUAGES` | Optional. Overrides `post.config.json`; up to two comma-separated codes from `en`, `es`, `pt`, `fr`, e.g. `en,es` |
+| `POST_GAP_MINUTES` | Optional. Overrides the gap between posts when both languages share a time (default `5`, 1–60) |
 
 Pick a **chat** model. Groq's catalogue mixes in models that can't write prose —
 `llama-prompt-guard-*` and `*-safeguard-*` are safety classifiers, and
@@ -112,11 +114,16 @@ than silent.
 triggered manually. Add the secrets above as repository variables and you're
 done.
 
-Its `cron:` line is UTC, because GitHub Actions has no timezone support, so it
-has to be the hour you want *in UTC* — not in your own timezone. `npm run setup`
-has a step that converts a city and a local time into the right cron for you.
-A cron cannot follow daylight saving, so re-run that step after the clocks
-change if you are somewhere that observes it.
+Each selected language gets its own `cron:` entry, and the schedule is UTC
+because GitHub Actions has no timezone support. `npm run setup` has a step that
+picks a local time per language and converts both into the right cron entries.
+Each scheduled run passes its cron through `SCHEDULE_CRON`, so only the language
+whose time fired posts; both posts read the same 24-hour commit window. A cron
+cannot follow daylight saving, so re-run that step after the clocks change if
+you are somewhere that observes it.
+
+If both languages are set to the same time, a single cron posts both with
+`gapMinutes` between them.
 
 ## Tests
 
@@ -124,8 +131,8 @@ change if you are somewhere that observes it.
 npm test
 ```
 
-91 tests covering commit scoring, the GitHub and HTTP layers, the CLI exit
-codes, and the workflow configuration.
+464 tests covering commit scoring, the GitHub and HTTP layers, the CLI exit
+codes, per-language scheduling, and the workflow configuration.
 
 ## Project layout
 

@@ -38,11 +38,11 @@ export const api = {
       body: JSON.stringify(values),
     }).then(json),
 
-  applySchedule: (cron) =>
+  applySchedule: (settings) =>
     fetch(at("/api/schedule/apply"), {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ cron }),
+      body: JSON.stringify(settings),
     }).then(json),
 
   prompt: () => fetch(at("/api/prompt")).then(json),
