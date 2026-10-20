@@ -2,7 +2,7 @@ import { describe, it, expect, beforeEach, afterEach } from "vitest";
 import { mkdtempSync, readFileSync, writeFileSync, existsSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import path from "node:path";
-import { mergeEnv, writeEnvFile } from "../scripts/envFile.js";
+import { mergeEnv, writeEnvFile, formatEnvValue } from "../scripts/envFile.js";
 
 let dir;
 let file;
@@ -19,12 +19,12 @@ afterEach(() => {
 describe("mergeEnv", () => {
   it("adds keys to an empty file", () => {
     const out = mergeEnv("", { A: "1", B: "2" });
-    expect(out).toBe("A=1\nB=2\n");
+    expect(out).toBe('A="1"\nB="2"\n');
   });
 
   it("replaces an existing value instead of appending a duplicate", () => {
     const out = mergeEnv("A=old\nB=keep\n", { A: "new" });
-    expect(out).toBe("A=new\nB=keep\n");
+    expect(out).toBe('A="new"\nB=keep\n');
     expect(out.match(/^A=/gm)).toHaveLength(1);
   });
 
@@ -34,8 +34,9 @@ describe("mergeEnv", () => {
 
     expect(out).toContain("# my config");
     expect(out).toContain("# another note");
+    // Untouched keys keep their original formatting, quotes and all.
     expect(out).toContain("B=keep");
-    expect(out).toContain("A=new");
+    expect(out).toContain('A="new"');
   });
 
   it("ignores empty values so a blank field never overwrites a good one", () => {
@@ -45,21 +46,73 @@ describe("mergeEnv", () => {
 
   it("appends genuinely new keys at the end", () => {
     const out = mergeEnv("A=1\n", { Z: "9" });
-    expect(out).toBe("A=1\nZ=9\n");
+    expect(out).toBe('A=1\nZ="9"\n');
   });
 
   it("handles a file with no trailing newline", () => {
     const out = mergeEnv("A=1", { B: "2" });
-    expect(out).toBe("A=1\nB=2\n");
+    expect(out).toBe('A=1\nB="2"\n');
   });
 
   it("keeps values containing = signs intact", () => {
     const out = mergeEnv("", { TOKEN: "abc=def==ghi" });
-    expect(out).toBe("TOKEN=abc=def==ghi\n");
+    expect(out).toBe('TOKEN="abc=def==ghi"\n');
   });
 
   it("always ends with a newline", () => {
     expect(mergeEnv("A=1\n", {})).toMatch(/\n$/);
+  });
+});
+
+describe("formatEnvValue", () => {
+  it("quotes a value that would otherwise be mangled", () => {
+    // A bare value gets truncated at the # and loses its padding.
+    expect(formatEnvValue("abc # def")).toBe('"abc # def"');
+    expect(formatEnvValue("  padded  ")).toBe('"  padded  "');
+  });
+
+  it("uses single quotes for a value containing a double quote", () => {
+    // dotenv never unescapes a quote inside double quotes, so this is the
+    // only form that round trips.
+    expect(formatEnvValue('say "hi"')).toBe(`'say "hi"'`);
+  });
+
+  it("leaves a backslash alone, because it is not an escape character", () => {
+    expect(formatEnvValue("a\\b")).toBe('"a\\b"');
+  });
+
+  it("escapes newlines, which only double quotes expand", () => {
+    expect(formatEnvValue("line1\nline2")).toBe('"line1\\nline2"');
+  });
+
+  it("does not double-wrap a value that is already quoted", () => {
+    // The wizard can be re-run over an existing .env; values arrive unquoted from
+    // process.env, but a hand-pasted one may already carry quotes.
+    expect(formatEnvValue('"abc"')).toBe('"abc"');
+    expect(formatEnvValue("'abc'")).toBe('"abc"');
+    expect(formatEnvValue(`'say "hi"'`)).toBe(`'say "hi"'`);
+  });
+
+  it("survives a dotenv round trip", async () => {
+    const { parse } = await import("dotenv");
+    const cases = {
+      PLAIN: "value",
+      HASH: "abc # def",
+      SPACED: "  padded  ",
+      EQUALS: "abc=def==ghi",
+      QUOTED: 'say "hi"',
+      BACKSLASH: "C:\\path\\to",
+      NEWLINE: "line1\nline2",
+      URN: "urn:li:person:zrjZBNPdK5",
+      MODEL: "qwen/qwen3.8-27b",
+      TOKEN: "fake-token-value-123",
+    };
+
+    const parsed = parse(mergeEnv("", cases));
+
+    for (const [key, value] of Object.entries(cases)) {
+      expect(parsed[key], key).toBe(value);
+    }
   });
 });
 
@@ -69,7 +122,7 @@ describe("writeEnvFile", () => {
 
     expect(result.ok).toBe(true);
     expect(result.updated).toEqual(["A"]);
-    expect(readFileSync(file, "utf8")).toBe("A=1\n");
+    expect(readFileSync(file, "utf8")).toBe('A="1"\n');
   });
 
   it("updates only the keys given", () => {
@@ -79,7 +132,7 @@ describe("writeEnvFile", () => {
     expect(result.updated).toEqual(["CHANGE"]);
     const content = readFileSync(file, "utf8");
     expect(content).toContain("KEEP=old");
-    expect(content).toContain("CHANGE=after");
+    expect(content).toContain('CHANGE="after"');
     expect(content).not.toContain("before");
   });
 

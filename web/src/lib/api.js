@@ -28,6 +28,22 @@ export const api = {
     }).then(json),
 
   dryRun: () => fetch(at("/api/dry-run"), { method: "POST" }).then(json),
+
+  schedule: () => fetch(at("/api/schedule")).then(json),
+
+  previewSchedule: (values) =>
+    fetch(at("/api/schedule/preview"), {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(values),
+    }).then(json),
+
+  applySchedule: (cron) =>
+    fetch(at("/api/schedule/apply"), {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ cron }),
+    }).then(json),
 };
 
 export const docsUrl = (file) => at(`/docs/${file}`);

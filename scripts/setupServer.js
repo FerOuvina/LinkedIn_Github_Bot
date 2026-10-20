@@ -10,6 +10,19 @@ import { syncSecrets, formatSyncResult } from "./syncSecrets.js";
 import { writeEnvFile } from "./envFile.js";
 import { stripBase, WEB_BASE } from "./webBase.js";
 import { envMissing } from "./validations.js";
+import { authorizeUrl, exchange } from "./linkedinAuth.js";
+import {
+  DAYS,
+  DEFAULT_WORKFLOW,
+  buildCron,
+  listTimeZones,
+  nextRuns,
+  offsetLabel,
+  parseCron,
+  readWorkflowCron,
+  toUtcTime,
+  writeWorkflowCron,
+} from "./schedule.js";
 
 const JSON_HEADERS = { "Content-Type": "application/json; charset=utf-8" };
 
@@ -33,27 +46,77 @@ async function readBody(req, { limit = 1_000_000 } = {}) {
 }
 
 /** Is the GitHub CLI present and signed in? Needed to write Actions secrets. */
-function checkGh() {
+/** Where the GitHub CLI lands on Windows, for when PATH has not been refreshed. */
+function ghCandidates() {
+  const names = ["gh"];
+  if (process.platform !== "win32") return names;
+
+  const roots = [
+    process.env.ProgramFiles,
+    process.env["ProgramFiles(x86)"],
+    process.env.LOCALAPPDATA,
+  ].filter(Boolean);
+
+  for (const root of roots) {
+    names.push(path.join(root, "GitHub CLI", "gh.exe"));
+    names.push(path.join(root, "Programs", "GitHub CLI", "gh.exe"));
+    names.push(path.join(root, "Microsoft", "WinGet", "Links", "gh.exe"));
+  }
+  return names;
+}
+
+/** Run a command, returning its stdout, or null if it could not run or failed. */
+function tryRun(cmd, args) {
   return new Promise((resolve) => {
-    const child = spawn("gh", ["--version"], { stdio: ["ignore", "pipe", "pipe"] });
+    const child = spawn(cmd, args, { stdio: ["ignore", "pipe", "pipe"] });
     let out = "";
     child.stdout.on("data", (d) => (out += d));
-
-    child.on("error", () => resolve({ installed: false, authenticated: false }));
-    child.on("close", async (code) => {
-      if (code !== 0) {
-        resolve({ installed: false, authenticated: false });
-        return;
-      }
-      const auth = spawn("gh", ["auth", "status"], { stdio: ["ignore", "pipe", "pipe"] });
-      let authOut = "";
-      auth.stdout.on("data", (d) => (authOut += d));
-      auth.on("error", () => resolve({ installed: true, authenticated: false }));
-      auth.on("close", (authCode) =>
-        resolve({ installed: true, authenticated: authCode === 0, version: out.split("\n")[0] })
-      );
-    });
+    child.on("error", () => resolve(null));
+    child.on("close", (code) => resolve(code === 0 ? out : null));
   });
+}
+
+/**
+ * Is the GitHub CLI present and signed in?
+ *
+ * A CLI installed while the terminal was already open is on disk but not on
+ * this process's PATH, which looks exactly like "not installed". So fall back
+ * to the usual install locations and report that case separately, since the
+ * fix is to restart the terminal rather than to install anything.
+ */
+export async function checkGh({
+  run = tryRun,
+  exists = existsSync,
+  candidates = ghCandidates(),
+} = {}) {
+  const [onPath, ...fallbacks] = candidates;
+
+  let stdout = await run(onPath, ["--version"]);
+  let command = onPath;
+  let via = "path";
+
+  if (!stdout) {
+    for (const candidate of fallbacks) {
+      if (!exists(candidate)) continue;
+      const out = await run(candidate, ["--version"]);
+      if (out) {
+        stdout = out;
+        command = candidate;
+        via = "filesystem";
+        break;
+      }
+    }
+  }
+
+  if (!stdout) return { installed: false, authenticated: false, onPath: true };
+
+  return {
+    installed: true,
+    authenticated: Boolean(await run(command, ["auth", "status"])),
+    onPath: via === "path",
+    version: stdout.split("\n")[0].trim(),
+    ...(via === "path" ? {} : { path: command }),
+  };
 }
 
 /** Run the actual bot in dry-run mode so the wizard tests the real path. */
@@ -99,6 +162,35 @@ function timingSafeEqualString(a, b) {
   return timingSafeEqual(bufA, bufB);
 }
 
+/**
+ * The wizard cannot reuse the CLI script's redirect URI: the script owns
+ * localhost:3000 and the wizard serves the API that has to receive the callback.
+ * So it gets its own, which must also be registered in the LinkedIn app.
+ * Override with LINKEDIN_WIZARD_REDIRECT_URI.
+ */
+export function linkedInRedirectUri({ host, port }) {
+  return (
+    process.env.LINKEDIN_WIZARD_REDIRECT_URI ||
+    `http://${host}:${port}/api/auth/linkedin/callback`
+  );
+}
+
+/**
+ * Real LinkedIn auth, bound to the wizard's own redirect URI.
+ *
+ * getAddress is a function, not a port, because the port is not known until
+ * the server is listening — and callers may pass port 0 to get a free one.
+ */
+function createLinkedInAuth(getAddress) {
+  // Resolved per request so it is correct even on an ephemeral port.
+  const redirectUri = () => linkedInRedirectUri(getAddress());
+
+  return {
+    authorizeUrl: ({ state }) => authorizeUrl({ state, redirectUri: redirectUri() }),
+    exchange: (code) => exchange(code, { redirectUri: redirectUri() }),
+  };
+}
+
 export function createSetupServer({
   port = 4319,
   host = "127.0.0.1",
@@ -107,13 +199,22 @@ export function createSetupServer({
   syncImpl = syncSecrets,
   env = process.env,
   envPath = path.join(path.dirname(fileURLToPath(import.meta.url)), "..", ".env"),
-  linkedin = null,
+linkedin,
   dryRunImpl,
   ghCheckImpl,
   docsDir,
   webBase = WEB_BASE,
+  workflowPath,
 } = {}) {
-  const state = createState();
+  /** Declared early so the LinkedIn adapter can read the bound port. */
+  let server;
+  const linkedinImpl =
+    linkedin === undefined
+      ? createLinkedInAuth(() => ({ host, port: server?.address()?.port ?? port }))
+      : linkedin;
+
+  /** Rotated on every authorization attempt, so a retry is not a replay. */
+  let state = null;
   /** Tokens waiting to be collected by the wizard. In memory only. */
   const pending = new Map();
   const runDryRunImpl = dryRunImpl ?? defaultDryRun;
@@ -122,6 +223,10 @@ export function createSetupServer({
 
   const resolvedWebDir =
     webDir ?? path.join(path.dirname(fileURLToPath(import.meta.url)), "..", "web", "dist");
+
+  const resolvedWorkflowPath =
+    workflowPath ??
+    path.join(path.dirname(fileURLToPath(import.meta.url)), "..", DEFAULT_WORKFLOW);
 
   const MIME = {
     ".html": "text/html; charset=utf-8",
@@ -169,7 +274,7 @@ export function createSetupServer({
         node: process.version,
         hasWebUi: existsSync(path.join(resolvedWebDir, "index.html")),
         envMissing,
-        gh: await (ghCheckImpl ?? checkGh)(),
+        gh: await (ghCheckImpl ? ghCheckImpl() : checkGh()),
       });
     },
 
@@ -191,20 +296,36 @@ export function createSetupServer({
       };
 
       const values = body.values && typeof body.values === "object" ? body.values : env;
-      const result = await syncImpl({
-        env: values,
-        repo: body.repo,
-        dryRun: !apply,
-      });
 
-      if (result.ok && apply && targets.env) {
+      // Honouring the GitHub checkbox used to require this to be skipped
+      // entirely; it was computed and then ignored, so an .env-only save still
+      // tried to push secrets and failed.
+      let result = { ok: true, applied: false, reason: "skipped", set: [], missing: [], skipped: [] };
+      if (targets.github) {
+        result = await syncImpl({ env: values, repo: body.repo, dryRun: !apply });
+      }
+
+      const messages = [];
+      if (targets.github) messages.push(formatSyncResult(result));
+
+      // The .env write is independent: a GitHub failure must not block it.
+      if (apply && targets.env) {
         const envResult = writeEnvFile(envPath, values);
         result.envUpdated = envResult.updated;
+        messages.push(
+          envResult.updated.length > 0
+            ? `✅ Wrote ${envResult.updated.length} value(s) to .env: ${envResult.updated.join(", ")}`
+            : "Nothing to write to .env."
+        );
+      } else if (targets.env && !apply) {
+        messages.push(`Would write ${Object.keys(values).length} value(s) to .env.`);
       }
+
+      if (messages.length === 0) messages.push("Nothing selected.");
 
       sendJson(res, result.ok ? 200 : 400, {
         ...result,
-        message: formatSyncResult(result),
+        message: messages.join("\n"),
       });
     },
 
@@ -217,17 +338,20 @@ export function createSetupServer({
       sendJson(res, 200, { ok: true, names, count: names.length });
     },
 
-    "GET /api/auth/linkedin/start": async (_req, res) => {
-      if (!linkedin) {
+"GET /api/auth/linkedin/start": async (_req, res) => {
+      if (!linkedinImpl) {
         sendJson(res, 501, { ok: false, error: "LinkedIn auth is not wired into the server yet." });
         return;
       }
-      const { url } = await linkedin.authorizeUrl({ state: state.value });
+// A fresh state per attempt. Reusing one across attempts would make the
+      // second "Connect LinkedIn" click look like a CSRF replay.
+      state = createState();
+      const { url } = await linkedinImpl.authorizeUrl({ state: state.value });
       sendJson(res, 200, { ok: true, url, state: state.value });
     },
 
-    "GET /api/auth/linkedin/callback": async (req, res, url) => {
-      if (!linkedin) {
+"GET /api/auth/linkedin/callback": async (req, res, url) => {
+      if (!linkedinImpl) {
         sendJson(res, 501, { ok: false, error: "LinkedIn auth is not wired into the server yet." });
         return;
       }
@@ -241,15 +365,21 @@ export function createSetupServer({
         return;
       }
 
-      if (!state.isValid(url.searchParams.get("state"))) {
-        sendJson(res, 400, { ok: false, error: "state mismatch — possible CSRF, aborting" });
+if (!state?.isValid(url.searchParams.get("state"))) {
+        // Nothing in progress means a stray or stale callback, not an attack.
+        sendJson(res, 400, {
+          ok: false,
+          error: state
+            ? "state mismatch — possible CSRF, aborting"
+            : "This callback does not match an authorization in progress. Start again from the wizard.",
+        });
         return;
       }
 
       try {
-        const tokens = await linkedin.exchange(url.searchParams.get("code"), {
-          redirectUri: env.LINKEDIN_REDIRECT_URI,
-        });
+        // The adapter binds its own redirect URI, so the code is exchanged
+        // against the wizard's URL — not the CLI script's.
+        const tokens = await linkedinImpl.exchange(url.searchParams.get("code"));
 
         // Hold the tokens server-side and redirect the popup back to the app.
         // Putting them in a URL would leak them into history and referrers.
@@ -277,10 +407,76 @@ export function createSetupServer({
     },
 
     // Runs the real bot in dry-run mode and returns what it printed.
-    "POST /api/dry-run": async (_req, res) => {
+"POST /api/dry-run": async (_req, res) => {
       try {
         const { stdout, stderr, code } = await runDryRunImpl();
-        sendJson(res, 200, { ok: code === 0, exitCode: code, stdout, stderr });
+        sendJson(res, code === 0 ? 200 : 500, { ok: code === 0, exitCode: code, stdout, stderr });
+      } catch (err) {
+        sendJson(res, 500, { ok: false, error: err.message });
+      }
+    },
+
+    // ── Schedule ──────────────────────────────────────────────
+    "GET /api/schedule": async (_req, res) => {
+      const current = readWorkflowCron(resolvedWorkflowPath);
+      sendJson(res, 200, {
+        ok: true,
+        workflowPath: resolvedWorkflowPath,
+        current,
+        parsed: parseCron(current),
+        days: DAYS,
+        zones: listTimeZones(),
+      });
+    },
+
+    // Converts a local wall-clock time into the UTC cron Actions will run.
+    "POST /api/schedule/preview": async (req, res) => {
+      const body = await readBody(req);
+
+      try {
+        const converted = toUtcTime({
+          timeZone: body.timeZone,
+          hour: Number(body.hour),
+          minute: Number(body.minute ?? 0),
+        });
+
+        const cron = buildCron({
+          hour: converted.utcHour,
+          minute: converted.utcMinute,
+          days: body.days ?? [],
+        });
+
+        sendJson(res, 200, {
+          ok: true,
+          cron,
+          utcTime: `${String(converted.utcHour).padStart(2, "0")}:${String(converted.utcMinute).padStart(2, "0")}`,
+          offsetLabel: converted.offsetLabel,
+          warnings: converted.warnings,
+          runs: nextRuns({ cron, timeZone: body.timeZone, count: 5 }),
+        });
+      } catch (err) {
+        sendJson(res, 400, { ok: false, error: err.message });
+      }
+    },
+
+    "POST /api/schedule/apply": async (req, res) => {
+      const body = await readBody(req);
+
+      try {
+        const result = writeWorkflowCron(resolvedWorkflowPath, body.cron);
+        if (!result.ok) {
+          sendJson(res, 400, { ok: false, error: result.reason });
+          return;
+        }
+
+        sendJson(res, 200, {
+          ok: true,
+          ...result,
+          message:
+            result.previous === result.cron
+              ? `Already set to "${result.cron}" — nothing changed.`
+              : `Updated the schedule from "${result.previous}" to "${result.cron}".`,
+        });
       } catch (err) {
         sendJson(res, 500, { ok: false, error: err.message });
       }
@@ -312,7 +508,7 @@ export function createSetupServer({
     return true;
   }
 
-  const server = createServer(async (req, res) => {
+  server = createServer(async (req, res) => {
     const rawUrl = new URL(req.url, `http://${host}:${port}`);
     // The built app may be mounted under a base path (Pages) or at the root
     // (local). Both must work, so strip the prefix if it is present.
@@ -387,6 +583,15 @@ if (invokedDirectly) {
     const url = `${root}${WEB_BASE === "/" ? "" : WEB_BASE}`;
 
     console.log(`\n  Setup server listening on ${url}\n`);
+
+    if (process.env.LINKEDIN_CLIENT_ID && process.env.LINKEDIN_CLIENT_SECRET) {
+      const cb = new URL(root).origin + "/api/auth/linkedin/callback";
+      console.log(`  LinkedIn auth is wired. Add this to Auth → Redirect URLs in your app:`);
+      console.log(`    ${cb}`);
+      if (linkedInRedirectUri({ host: "127.0.0.1", port: new URL(root).port }) !== cb) {
+        console.log(`    (from LINKEDIN_WIZARD_REDIRECT_URI)`);
+      }
+    }
 
     if (existsSync(
       path.join(path.dirname(fileURLToPath(import.meta.url)), "..", "web", "dist", "index.html")

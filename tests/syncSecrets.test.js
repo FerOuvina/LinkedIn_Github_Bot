@@ -4,6 +4,8 @@ import { syncSecrets, planSecrets, formatSyncResult, REQUIRED_SECRETS } from "..
 const FULL_ENV = {
   HUB_USER: "octocat",
   GITHUB_TOKEN: "gh-secret-value",
+  LINKEDIN_CLIENT_ID: "li-client-id",
+  LINKEDIN_CLIENT_SECRET: "li-client-secret",
   LINKEDIN_ACCESS_TOKEN: "li-secret-value",
   LINKEDIN_AUTHOR_URN: "urn:li:person:abc",
   GROQ_API_KEY: "gsk-secret-value",
@@ -28,9 +30,34 @@ describe("planSecrets", () => {
   it("lists what would be set without leaking values", () => {
     const plan = planSecrets(FULL_ENV);
 
-    expect(plan.set).toEqual(["HUB_USER", "GITHUB_TOKEN", "LINKEDIN_ACCESS_TOKEN", "LINKEDIN_AUTHOR_URN", "GROQ_API_KEY", "GROQ_MODEL"]);
+    expect(plan.set).toEqual(["HUB_USER", "LINKEDIN_ACCESS_TOKEN", "LINKEDIN_AUTHOR_URN", "GROQ_API_KEY", "GROQ_MODEL"]);
     expect(JSON.stringify(plan)).not.toContain("li-secret-value");
     expect(JSON.stringify(plan)).not.toContain("gh-secret-value");
+  });
+
+  it("never plans GITHUB_TOKEN, which the API rejects as a reserved name", () => {
+    // Setting it returns HTTP 422: "Secret names must not start with GITHUB_".
+    const plan = planSecrets(FULL_ENV);
+
+    expect(plan.set).not.toContain("GITHUB_TOKEN");
+    expect(plan.localOnly).toContain("GITHUB_TOKEN");
+  });
+
+  it("keeps the LinkedIn app credentials out of the repository", () => {
+    // These are only needed to run the auth flow locally. Publishing them would
+    // let anyone with repo access mint tokens as your app.
+    const plan = planSecrets(FULL_ENV);
+
+    expect(plan.set).not.toContain("LINKEDIN_CLIENT_ID");
+    expect(plan.set).not.toContain("LINKEDIN_CLIENT_SECRET");
+    expect(plan.localOnly).toContain("LINKEDIN_CLIENT_ID");
+    expect(plan.localOnly).toContain("LINKEDIN_CLIENT_SECRET");
+  });
+
+  it("says what stayed local instead of pretending it was pushed", () => {
+    const out = formatSyncResult(planSecrets(FULL_ENV));
+    expect(out).toContain("Kept local only");
+    expect(out).toContain("LINKEDIN_CLIENT_SECRET");
   });
 
   it("treats every required secret as required", () => {
@@ -63,6 +90,7 @@ describe("syncSecrets", () => {
 
     expect(result.ok).toBe(false);
     expect(result.reason).toBe("missing");
+    expect(result.missing).toContain("GROQ_API_KEY");
     expect(runCmd).not.toHaveBeenCalled();
   });
 
@@ -126,6 +154,16 @@ describe("syncSecrets", () => {
     expect(formatSyncResult(result)).not.toContain("gsk-secret-value");
   });
 
+  it("never invokes gh for a local-only name", async () => {
+    const gh = fakeGh();
+    await syncSecrets({ env: FULL_ENV, dryRun: false, runCmd: gh.runCmd });
+
+    const pushed = gh.calls.map((c) => c.args[2]);
+    expect(pushed).not.toContain("GITHUB_TOKEN");
+    expect(pushed).not.toContain("LINKEDIN_CLIENT_ID");
+    expect(pushed).not.toContain("LINKEDIN_CLIENT_SECRET");
+  });
+
   it("skips optional secrets that have no value", async () => {
     const gh = fakeGh();
     const result = await syncSecrets({ env: FULL_ENV, dryRun: false, runCmd: gh.runCmd });
@@ -138,7 +176,7 @@ describe("syncSecrets", () => {
 describe("formatSyncResult", () => {
   it("lists names only for a dry run", () => {
     const out = formatSyncResult(planSecrets(FULL_ENV));
-    expect(out).toContain("Would set 6 secret(s)");
+    expect(out).toContain("Would set 5 secret(s)");
     expect(out).toContain("HUB_USER");
     expect(out).not.toContain("octocat");
   });
@@ -146,6 +184,6 @@ describe("formatSyncResult", () => {
   it("confirms a real write", async () => {
     const { runCmd } = fakeGh();
     const out = formatSyncResult(await syncSecrets({ env: FULL_ENV, dryRun: false, runCmd }));
-    expect(out).toContain("Set 6 secret(s)");
+    expect(out).toContain("Set 5 secret(s)");
   });
 });

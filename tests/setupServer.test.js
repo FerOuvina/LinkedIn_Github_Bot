@@ -1,6 +1,6 @@
 import { describe, it, expect, afterEach, beforeEach, vi } from "vitest";
 import { readFileSync } from "node:fs";
-import { mkdtempSync, mkdirSync, writeFileSync, rmSync } from "node:fs";
+import { mkdtempSync, mkdirSync, writeFileSync, rmSync, existsSync } from "node:fs";
 import { tmpdir } from "node:os";
 import path from "node:path";
 import { WEB_BASE } from "../scripts/webBase.js";
@@ -70,6 +70,25 @@ describe("GET /api/health", () => {
     const body = await (await s.get("/api/health")).json();
     expect(body.gh.installed).toBe(false);
     expect(body.ok).toBe(true); // the server itself is healthy
+  });
+
+  it("reports an installed CLI that is not on PATH separately", async () => {
+    // A CLI installed while the terminal was open looks identical to a
+    // missing one unless we look past PATH.
+    const ghCheckImpl = vi.fn().mockResolvedValue({
+      installed: true,
+      authenticated: true,
+      onPath: false,
+      version: "gh version 2.0.0",
+      path: "C:\\Program Files\\GitHub CLI\\gh.exe",
+    });
+
+    const s = await start({ ghCheckImpl });
+    const body = await (await s.get("/api/health")).json();
+
+    expect(body.gh.installed).toBe(true);
+    expect(body.gh.onPath).toBe(false);
+    expect(body.gh.path).toContain("gh.exe");
   });
 
   it("reports ok, the node version and missing env names", async () => {
@@ -142,6 +161,67 @@ describe("POST /api/secrets", () => {
     expect((await res.json()).message).toContain("GITHUB_TOKEN");
   });
 
+  it("skips the GitHub push entirely when only .env is selected", async () => {
+    // The GitHub flag used to be computed and then ignored, so an .env-only
+    // save still pushed secrets and failed on a reserved name.
+    const syncImpl = vi.fn().mockResolvedValue({ ok: true, applied: true, set: [], missing: [], skipped: [], written: [] });
+    const dir = mkdtempSync(path.join(tmpdir(), "envonly-"));
+    const envPath = path.join(dir, ".env");
+    const s = await start({ syncImpl, env: FULL_ENV, envPath });
+
+    const res = await s.post("/api/secrets", { apply: true, github: false, env: true });
+    const body = await res.json();
+
+    expect(syncImpl).not.toHaveBeenCalled();
+    expect(res.status).toBe(200);
+    expect(body.ok).toBe(true);
+    expect(body.message).toContain(".env");
+    expect(readFileSync(envPath, "utf8")).toContain("GROQ_API_KEY=");
+
+    rmSync(dir, { recursive: true, force: true });
+  });
+
+  it("still writes .env when the GitHub push fails", async () => {
+    const syncImpl = vi.fn().mockResolvedValue({
+      ok: false,
+      applied: false,
+      reason: "write-failed",
+      failedSecret: "GROQ_API_KEY",
+      detail: "HTTP 500",
+      set: [],
+      missing: [],
+      skipped: [],
+    });
+    const dir = mkdtempSync(path.join(tmpdir(), "both-"));
+    const envPath = path.join(dir, ".env");
+    const s = await start({ syncImpl, env: FULL_ENV, envPath });
+
+    const res = await s.post("/api/secrets", { apply: true, github: true, env: true });
+    const body = await res.json();
+
+    expect(res.status).toBe(400);
+    expect(body.message).toContain("Failed to set GROQ_API_KEY");
+    expect(body.message).toContain(".env");
+    expect(readFileSync(envPath, "utf8")).toContain("GROQ_API_KEY=");
+
+    rmSync(dir, { recursive: true, force: true });
+  });
+
+  it("does not write .env on a preview", async () => {
+    const syncImpl = vi.fn().mockResolvedValue({ ok: true, applied: false, reason: "dry-run", set: ["HUB_USER"], missing: [], skipped: [] });
+    const dir = mkdtempSync(path.join(tmpdir(), "preview-"));
+    const envPath = path.join(dir, ".env");
+    const s = await start({ syncImpl, env: FULL_ENV, envPath });
+
+    const res = await s.post("/api/secrets", { apply: false, github: false, env: true });
+
+    expect(res.status).toBe(200);
+    expect((await res.json()).message).toContain("Would write");
+    expect(existsSync(envPath)).toBe(false);
+
+    rmSync(dir, { recursive: true, force: true });
+  });
+
   it("never echoes a secret value in the response", async () => {
     const syncImpl = vi.fn().mockResolvedValue({ ok: true, applied: false, reason: "dry-run", set: ["GITHUB_TOKEN"], missing: [], skipped: [] });
     const s = await start({ syncImpl, env: FULL_ENV });
@@ -176,9 +256,121 @@ describe("POST /api/dry-run", () => {
     const res = await s.post("/api/dry-run", {});
     const body = await res.json();
 
-    expect(body.ok).toBe(false);
+expect(body.ok).toBe(false);
     expect(body.exitCode).toBe(1);
     expect(body.stderr).toContain("Missing env variables");
+  });
+});
+
+describe("schedule routes", () => {
+  let dir;
+  let workflow;
+
+  const WORKFLOW = `name: Daily
+
+on:
+  schedule:
+    - cron: "0 18 * * *"
+  workflow_dispatch:
+`;
+
+  beforeEach(() => {
+    dir = mkdtempSync(path.join(tmpdir(), "sched-"));
+    workflow = path.join(dir, "linkedin-post.yml");
+    writeFileSync(workflow, WORKFLOW, "utf8");
+  });
+
+  afterEach(() => rmSync(dir, { recursive: true, force: true }));
+
+  it("reports the committed cron and the zone choices", async () => {
+    const s = await start({ workflowPath: workflow });
+    const body = await (await s.get("/api/schedule")).json();
+
+    expect(body.ok).toBe(true);
+    expect(body.current).toBe("0 18 * * *");
+    expect(body.parsed).toEqual({ hour: 18, minute: 0, days: [] });
+    expect(body.zones.cities.length).toBeGreaterThan(20);
+    expect(body.days).toHaveLength(7);
+  });
+
+  it("converts a local time into the UTC cron Actions will run", async () => {
+    const s = await start({ workflowPath: workflow });
+    const res = await s.post("/api/schedule/preview", {
+      timeZone: "Asia/Tokyo",
+      hour: 9,
+      minute: 0,
+      days: [1, 2, 3, 4, 5],
+    });
+    const body = await res.json();
+
+    expect(res.status).toBe(200);
+    // 09:00 in Tokyo is midnight UTC, and the run is weekdays only.
+    expect(body.cron).toBe("0 0 * * 1-5");
+    expect(body.utcTime).toBe("00:00");
+    expect(body.offsetLabel).toBe("UTC+09:00");
+    expect(body.runs.length).toBe(5);
+  });
+
+  it("warns that cron cannot follow daylight saving", async () => {
+    const s = await start({ workflowPath: workflow });
+    const body = await (
+      await s.post("/api/schedule/preview", { timeZone: "Europe/Madrid", hour: 9 })
+    ).json();
+
+    expect(body.cron).toBe("0 7 * * *"); // CEST in July
+    expect(body.warnings.join(" ")).toMatch(/daylight saving/i);
+  });
+
+  it("rejects an unknown timezone rather than writing a nonsense cron", async () => {
+    const s = await start({ workflowPath: workflow });
+    const res = await s.post("/api/schedule/preview", { timeZone: "Mars/Olympus", hour: 9 });
+
+    expect(res.status).toBe(400);
+    expect((await res.json()).error).toMatch(/Unknown time zone/);
+  });
+
+  it("leaves the workflow alone when previewing", async () => {
+    const s = await start({ workflowPath: workflow });
+    await s.post("/api/schedule/preview", { timeZone: "Asia/Tokyo", hour: 9 });
+
+    expect(readFileSync(workflow, "utf8")).toBe(WORKFLOW);
+  });
+
+  it("writes the cron and reports what changed", async () => {
+    const s = await start({ workflowPath: workflow });
+    const res = await s.post("/api/schedule/apply", { cron: "30 9 * * 1-5" });
+    const body = await res.json();
+
+    expect(res.status).toBe(200);
+    expect(body.previous).toBe("0 18 * * *");
+    expect(body.cron).toBe("30 9 * * 1-5");
+    expect(readFileSync(workflow, "utf8")).toContain('- cron: "30 9 * * 1-5"');
+    expect(readFileSync(workflow, "utf8")).toContain("workflow_dispatch:");
+  });
+
+  it("says so when the schedule is already what was asked for", async () => {
+    const s = await start({ workflowPath: workflow });
+    const body = await (await s.post("/api/schedule/apply", { cron: "0 18 * * *" })).json();
+
+    expect(body.ok).toBe(true);
+    expect(body.message).toMatch(/nothing changed/i);
+  });
+
+  it("refuses to write when the workflow has no single cron", async () => {
+    writeFileSync(workflow, `${WORKFLOW}    - cron: "5 5 * * *"\n`, "utf8");
+    const s = await start({ workflowPath: workflow });
+
+    const res = await s.post("/api/schedule/apply", { cron: "30 9 * * *" });
+    expect(res.status).toBe(400);
+    expect((await res.json()).error).toMatch(/cron/);
+  });
+
+  it("reports a missing workflow instead of throwing", async () => {
+    const s = await start({ workflowPath: path.join(dir, "absent.yml") });
+    const res = await s.post("/api/schedule/apply", { cron: "30 9 * * *" });
+
+    expect(res.status).toBe(400);
+    expect((await res.json()).error).toMatch(/Not found/);
   });
 });
 
@@ -423,9 +615,66 @@ describe("routing", () => {
 });
 
 describe("LinkedIn auth routes", () => {
-  it("501s when no auth implementation is injected", async () => {
-    const s = await start();
+it("still 501s when auth is explicitly disabled", async () => {
+    const s = await start({ linkedin: null });
     expect((await s.get("/api/auth/linkedin/start")).status).toBe(501);
+  });
+
+  it("wires the real LinkedIn auth by default, not a stub", async () => {
+    const saved = { ...process.env };
+    process.env.LINKEDIN_CLIENT_ID = "client-123";
+    process.env.LINKEDIN_CLIENT_SECRET = "secret-456";
+    delete process.env.LINKEDIN_WIZARD_REDIRECT_URI;
+
+    try {
+      const s = await start();
+      const res = await s.get("/api/auth/linkedin/start");
+      const body = await res.json();
+
+      expect(res.status).toBe(200);
+      const authUrl = new URL(body.url);
+      expect(authUrl.origin + authUrl.pathname).toBe(
+        "https://www.linkedin.com/oauth/v2/authorization"
+      );
+      expect(authUrl.searchParams.get("client_id")).toBe("client-123");
+      // The wizard has to receive the callback itself, so it uses its own
+      // redirect URI — not the CLI script's localhost:3000.
+      expect(authUrl.searchParams.get("redirect_uri")).toBe(
+        `${s.url}/api/auth/linkedin/callback`
+      );
+    } finally {
+      process.env = saved;
+    }
+  });
+
+  it("requests w_member_social, without which posting is rejected", async () => {
+    const saved = { ...process.env };
+    process.env.LINKEDIN_CLIENT_ID = "client-123";
+    process.env.LINKEDIN_CLIENT_SECRET = "secret-456";
+    delete process.env.LINKEDIN_WIZARD_REDIRECT_URI;
+
+    try {
+      const s = await start();
+      const { url } = await (await s.get("/api/auth/linkedin/start")).json();
+      expect(new URL(url).searchParams.get("scope")).toContain("w_member_social");
+    } finally {
+      process.env = saved;
+    }
+  });
+
+  it("honours LINKEDIN_WIZARD_REDIRECT_URI over the derived one", async () => {
+    const saved = { ...process.env };
+    process.env.LINKEDIN_CLIENT_ID = "client-123";
+    process.env.LINKEDIN_CLIENT_SECRET = "secret-456";
+    process.env.LINKEDIN_WIZARD_REDIRECT_URI = "http://127.0.0.1:9999/cb";
+
+    try {
+      const s = await start();
+      const { url } = await (await s.get("/api/auth/linkedin/start")).json();
+      expect(new URL(url).searchParams.get("redirect_uri")).toBe("http://127.0.0.1:9999/cb");
+    } finally {
+      process.env = saved;
+    }
   });
 
   it("returns an authorize url and a state token", async () => {
@@ -520,6 +769,51 @@ describe("LinkedIn auth routes", () => {
 
     expect(res.status).toBe(502);
     expect((await res.json()).error).toContain("code already used");
+  });
+
+  it("lets you start over after a completed authorization", async () => {
+    // A wizard user who mistypes a redirect URI, or clicks twice, must not be
+    // locked out: a burned state token used to make every retry a CSRF replay.
+    const linkedin = {
+      authorizeUrl: vi.fn().mockResolvedValue({ url: "https://linkedin.com/oauth" }),
+      exchange: vi.fn().mockResolvedValue({ accessToken: "tok", authorUrn: "urn:li:person:abc" }),
+    };
+    const s = await start({ linkedin });
+
+    const first = await (await s.get("/api/auth/linkedin/start")).json();
+    await s.get(`/api/auth/linkedin/callback?code=a&state=${first.state}`, { redirect: "manual" });
+
+    const second = await (await s.get("/api/auth/linkedin/start")).json();
+    expect(second.state).not.toBe(first.state);
+
+    const retry = await s.get(`/api/auth/linkedin/callback?code=b&state=${second.state}`, {
+      redirect: "manual",
+    });
+    expect(retry.status).toBe(302);
+  });
+
+  it("still refuses a replay of an already-used state token", async () => {
+    const linkedin = {
+      authorizeUrl: vi.fn().mockResolvedValue({ url: "https://linkedin.com/oauth" }),
+      exchange: vi.fn().mockResolvedValue({ accessToken: "tok" }),
+    };
+    const s = await start({ linkedin });
+
+    const { state } = await (await s.get("/api/auth/linkedin/start")).json();
+    await s.get(`/api/auth/linkedin/callback?code=a&state=${state}`, { redirect: "manual" });
+
+    expect(
+      (await s.get(`/api/auth/linkedin/callback?code=a&state=${state}`, { redirect: "manual" })).status
+    ).toBe(400);
+  });
+
+  it("explains a stray callback rather than calling it a CSRF", async () => {
+    const s = await start({
+      linkedin: { authorizeUrl: vi.fn(), exchange: vi.fn() },
+    });
+    // No authorization was ever started.
+    const res = await s.get("/api/auth/linkedin/callback?code=orphan");
+    expect((await res.json()).error).toMatch(/does not match an authorization in progress/);
   });
 
   it("refuses to reuse a state token", async () => {

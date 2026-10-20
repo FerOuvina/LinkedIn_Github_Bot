@@ -28,11 +28,43 @@ function requireConfig() {
   }
 }
 
+/**
+ * Build the URL the browser should be sent to. Exported so the setup wizard can
+ * open a popup of its own instead of taking over a local server.
+ * @returns {{url: string}}
+ */
+export function authorizeUrl({ state = randomBytes(16).toString("hex"), redirectUri: redirect = redirectUri() } = {}) {
+  requireConfig();
+
+  const url = new URL(AUTH_URL);
+  url.searchParams.set("response_type", "code");
+  url.searchParams.set("client_id", clientId());
+  url.searchParams.set("redirect_uri", redirect);
+  url.searchParams.set("scope", scopes().join(" "));
+  url.searchParams.set("state", state);
+
+  return { url: url.href, state };
+}
+
+/**
+ * The command that opens the authorize URL. Extracted so it can be asserted on:
+ * building it inline once shipped `start "" "undefined"`, which Windows reported
+ * as "cannot find 'undefined'" and no test could see.
+ * @returns {{command: string, shell: string}}
+ */
+export function openBrowserCommand(url) {
+  if (typeof url !== "string" || !url) {
+    throw new Error("Cannot open the browser: the authorize URL is missing.");
+  }
+  // `start` treats the first quoted argument as a window title, hence "".
+  return { command: `start "" "${url}"`, shell: "cmd.exe" };
+}
+
 /** Step 1+2: send the user to LinkedIn and capture the code they get back. */
 async function authorizeWithBrowser() {
   const redirect = redirectUri();
   const { port, pathname } = new URL(redirect);
-  const state = randomBytes(16).toString("hex");
+  const { state, url: authUrl } = authorizeUrl({ state: randomBytes(16).toString("hex"), redirectUri: redirect });
 
   const code = await new Promise((resolve, reject) => {
     const server = createServer((req, res) => {
@@ -69,27 +101,27 @@ async function authorizeWithBrowser() {
     );
     server.listen(port);
 
-    const authUrl = new URL(AUTH_URL);
-    authUrl.searchParams.set("response_type", "code");
-    authUrl.searchParams.set("client_id", clientId());
-    authUrl.searchParams.set("redirect_uri", redirect);
-    authUrl.searchParams.set("scope", scopes().join(" "));
-    authUrl.searchParams.set("state", state);
-
     console.log("\nOpening your browser to authorize this app.\n");
-    console.log(`If it doesn't open, paste this into your browser:\n${authUrl.href}\n`);
+    console.log(`If it doesn't open, paste this into your browser:\n${authUrl}\n`);
     console.log("Waiting for LinkedIn to redirect back...\n");
 
+    const { command, shell } = openBrowserCommand(authUrl);
     import("node:child_process").then(({ exec }) =>
-      exec(`start "" "${authUrl.href}"`, { shell: "cmd.exe" }, () => {})
+      exec(command, { shell }, () => {})
     );
   });
 
   return code;
 }
 
-/** Step 3: trade the code for tokens. */
-async function exchangeCode(code) {
+/**
+ * Step 3: trade the code for tokens, then read the profile to learn who the
+ * account is. Exported for the setup wizard.
+ * @returns {Promise<{accessToken: string, refreshToken?: string, authorUrn: string, expiresIn?: number}>}
+ */
+export async function exchange(code, { redirectUri: redirect = redirectUri() } = {}) {
+  requireConfig();
+
   const res = await fetch(TOKEN_URL, {
     method: "POST",
     headers: { "Content-Type": "application/x-www-form-urlencoded" },
@@ -98,7 +130,7 @@ async function exchangeCode(code) {
       code,
       client_id: clientId(),
       client_secret: clientSecret(),
-      redirect_uri: redirectUri(),
+      redirect_uri: redirect,
     }),
   });
 
@@ -108,7 +140,14 @@ async function exchangeCode(code) {
       `LinkedIn rejected the code: ${data.error ?? res.status} — ${data.error_description ?? ""}`
     );
   }
-  return data;
+
+  const profile = await fetchProfile(data.access_token);
+
+  return {
+    ...normalizeTokens(data),
+    authorUrn: `urn:li:person:${profile.sub}`,
+    name: profile.name,
+  };
 }
 
 /** No browser needed: mint a new access token from a stored refresh token. */
@@ -158,17 +197,16 @@ function normalizeTokens(tokens) {
   };
 }
 
-function report({ accessToken, refreshToken, expiresIn, profile }) {
+function report({ accessToken, refreshToken, expiresIn, authorUrn, name }) {
   if (!accessToken) throw new Error("LinkedIn returned no access token");
-  const urn = `urn:li:person:${profile.sub}`;
 
   console.log("\n───────────── copy these ─────────────\n");
   console.log(`LINKEDIN_ACCESS_TOKEN=${accessToken}`);
-  console.log(`LINKEDIN_AUTHOR_URN=${urn}`);
+  console.log(`LINKEDIN_AUTHOR_URN=${authorUrn}`);
   if (refreshToken) console.log(`LINKEDIN_REFRESH_TOKEN=${refreshToken}`);
   console.log("\n──────────────────────────────────────\n");
 
-  console.log(`Signed in as: ${profile.name ?? "unknown"} (${urn})`);
+  console.log(`Signed in as: ${name ?? "unknown"} (${authorUrn})`);
   if (expiresIn) {
     console.log(`Access token expires in ${Math.round(expiresIn / 86400)} days.`);
   }
@@ -196,14 +234,12 @@ export async function runAuth({ refreshOnly = false } = {}) {
   if (refreshOnly) {
     const tokens = await refreshAccessToken();
     const profile = await fetchProfile(tokens.access_token);
-    report({ ...normalizeTokens(tokens), profile });
+    report({ ...normalizeTokens(tokens), authorUrn: `urn:li:person:${profile.sub}`, name: profile.name });
     return;
   }
 
   const code = await authorizeWithBrowser();
-  const tokens = await exchangeCode(code);
-  const profile = await fetchProfile(tokens.access_token);
-  report({ ...normalizeTokens(tokens), profile });
+  report(await exchange(code));
 }
 
 const invokedDirectly =

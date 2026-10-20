@@ -1,21 +1,33 @@
 import "dotenv/config";
 import { spawn } from "node:child_process";
 
+/** Secrets the scheduled job actually needs from the repository. */
 export const REQUIRED_SECRETS = [
   "HUB_USER",
-  "GITHUB_TOKEN",
   "LINKEDIN_ACCESS_TOKEN",
   "LINKEDIN_AUTHOR_URN",
   "GROQ_API_KEY",
 ];
 
-/** Optional secrets: only pushed when the user actually has a value for them. */
-const OPTIONAL_SECRETS = [
-  "GROQ_MODEL",
-  "LINKEDIN_REFRESH_TOKEN",
+/**
+ * Never pushed to the repository.
+ *
+ * GITHUB_TOKEN: the API rejects the name outright (HTTP 422 — `GITHUB_` is
+ * reserved); the workflow uses ${{ github.token }} instead.
+ *
+ * LINKEDIN_CLIENT_ID / LINKEDIN_CLIENT_SECRET: only needed to run the auth
+ * flow locally. The scheduled job posts with the access token alone, so
+ * publishing these would hand anyone with repo access the ability to mint
+ * tokens as your app.
+ */
+export const LOCAL_ONLY_SECRETS = [
+  "GITHUB_TOKEN",
   "LINKEDIN_CLIENT_ID",
   "LINKEDIN_CLIENT_SECRET",
 ];
+
+/** Optional secrets: only pushed when the user actually has a value for them. */
+const OPTIONAL_SECRETS = ["GROQ_MODEL", "LINKEDIN_REFRESH_TOKEN"];
 
 /**
  * Run a command, optionally writing to stdin, so secret values never appear in
@@ -41,13 +53,24 @@ function run(cmd, args = [], { input } = {}) {
 }
 
 /** Values are never returned or logged — only their names. */
-export function planSecrets(env = process.env, names = [...REQUIRED_SECRETS, ...OPTIONAL_SECRETS]) {
+export function planSecrets(
+  env = process.env,
+  names = [...REQUIRED_SECRETS, ...OPTIONAL_SECRETS, ...LOCAL_ONLY_SECRETS]
+) {
   const set = [];
   const missing = [];
   const skipped = [];
+  const localOnly = [];
 
   for (const name of names) {
     const value = env[name];
+
+    // Never attempted: the API rejects these names outright.
+    if (LOCAL_ONLY_SECRETS.includes(name)) {
+      if (value) localOnly.push(name);
+      continue;
+    }
+
     const required = REQUIRED_SECRETS.includes(name);
 
     if (value) set.push(name);
@@ -55,7 +78,7 @@ export function planSecrets(env = process.env, names = [...REQUIRED_SECRETS, ...
     else skipped.push(name);
   }
 
-  return { set, missing, skipped };
+  return { set, missing, skipped, localOnly };
 }
 
 /**
@@ -124,15 +147,27 @@ export function formatSyncResult(result) {
   if (result.reason === "write-failed") {
     return `❌ Failed to set ${result.failedSecret}: ${result.detail}`;
   }
-  if (!result.applied) {
+if (!result.applied) {
     return [
       `Would set ${result.set.length} secret(s): ${result.set.join(", ")}`,
       result.skipped.length > 0 ? `Skipped (not set): ${result.skipped.join(", ")}` : null,
+      ...localOnlyNote(result),
       "Re-run with --apply to write them.",
     ]
       .filter(Boolean)
       .join("\n");
   }
-  return `✅ Set ${result.written.length} secret(s): ${result.written.join(", ")}`;
+  return [
+    `✅ Set ${result.written.length} secret(s): ${result.written.join(", ")}`,
+    ...localOnlyNote(result),
+  ]
+    .filter(Boolean)
+    .join("\n");
+}
+
+/** These stay on your machine, so say where they went instead of trying. */
+function localOnlyNote(result) {
+  if (!result.localOnly?.length) return [];
+  return [`Kept local only (never pushed to the repository): ${result.localOnly.join(", ")}`];
 }
 
