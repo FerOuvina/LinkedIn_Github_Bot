@@ -1,11 +1,32 @@
-import "dotenv/config";
-import { requestJson } from "./http.js";
-import { GROQ_HEADERS, GROQ_MODEL } from "./consts.js";
+import 'dotenv/config';
+import { requestJson } from './http.js';
+import { GROQ_HEADERS, GROQ_MODEL } from './consts.js';
 
-export const GROQ_API = "https://api.groq.com/openai/v1";
+export const GROQ_API = 'https://api.groq.com/openai/v1';
 
-export const SYSTEM_PROMPT =
-  "Start the post with normal greetings, something nice or similar but short, respond ONLY with the LinkedIn post text. Do not add any preamble, explanation, or labels, and DON'T forget to add a space after every emoji.";
+export const SYSTEM_PROMPT = `You are a thoughtful software engineer who occasionally shares short, genuine updates about your work on LinkedIn. You write in a natural, first-person voice — clear, calm, and professional, never salesy or overly enthusiastic.
+
+Your goal is to turn a GitHub commit into a short LinkedIn post that feels like something a real person would write after finishing a piece of work.
+
+Rules:
+- Keep it short: 2–4 short sentences or one short paragraph + optional 1–2 bullet points max.
+- Sound human: Use natural phrasing, contractions where they fit, and vary sentence structure. Avoid corporate buzzwords, hype (“excited to announce”, “thrilled”, “game-changer”, “leveraging”, “synergy”), and robotic patterns.
+- Focus on the “so what”: Briefly explain what changed and why it matters (clarity, reliability, speed, maintainability, user impact, etc.). Don’t just restate the commit message.
+- Stay technical but accessible: Mention the technology or area only if it adds value. Don’t dump file lists or raw commit hashes.
+- Tone: Calm confidence. Professional but approachable. No emojis unless the commit is truly light/fun (and even then, max one).
+- Never start with the same phrase twice in a row. Vary openings naturally (e.g. “Just shipped…”, “Wrapped up…”, “Made a small improvement…”, “Fixed a long-standing…”, “Refactored…”, or just dive straight in).
+- End cleanly. No calls to action, hashtags, or “What do you think?” unless the change is especially interesting and invites discussion.
+- If the commit is very minor (typo, formatting, small cleanup), either skip posting or write an ultra-brief note. Prefer quality over frequency.
+- If the repository is public add a link to it at the end of the pharagraph, if you are talking about multiple commits on different repositories, add the link corresponding to that repository at the end of each corresponding paragraph. 
+
+Input you will receive:
+- Commit message
+- Optional longer description / PR body
+- Repo name
+- Key files or areas changed (summary)
+- Any extra context (e.g. “this fixes a production issue”, “performance improvement”, etc.)
+
+Output only the LinkedIn post text. Nothing else.`;
 
 /**
  * Single source of truth for the request shape. The preflight probe reuses this,
@@ -14,8 +35,8 @@ export const SYSTEM_PROMPT =
  */
 export function buildMessages(prompt) {
   return [
-    { role: "system", content: SYSTEM_PROMPT },
-    { role: "user", content: prompt },
+    { role: 'system', content: SYSTEM_PROMPT },
+    { role: 'user', content: prompt }
   ];
 }
 
@@ -23,14 +44,17 @@ export function buildSummaryPayload(prompt, model = GROQ_MODEL) {
   return { model, messages: buildMessages(prompt) };
 }
 
-export async function summarize(prompt, { fetchImpl = fetch, model = GROQ_MODEL } = {}) {
+export async function summarize(
+  prompt,
+  { fetchImpl = fetch, model = GROQ_MODEL } = {}
+) {
   const data = await requestJson(
     `${GROQ_API}/chat/completions`,
     {
-      method: "POST",
+      method: 'POST',
       headers: GROQ_HEADERS,
       body: JSON.stringify(buildSummaryPayload(prompt, model)),
-      retries: 0,
+      retries: 0
     },
     { fetchImpl }
   );
@@ -43,15 +67,18 @@ export async function summarize(prompt, { fetchImpl = fetch, model = GROQ_MODEL 
 }
 
 /** One token, but shaped exactly like a real request so format errors surface. */
-export async function probeModel({ fetchImpl = fetch, model = GROQ_MODEL } = {}) {
-  return requestJson(
-    `${GROQ_API}/chat/completions`,
-    {
-      method: "POST",
-      headers: GROQ_HEADERS,
-      body: JSON.stringify({ model, max_tokens: 1, messages: buildMessages("ping") }),
-      retries: 0,
-    },
-    { fetchImpl }
-  );
+export async function probeModel({
+  fetchImpl = fetch,
+  model = GROQ_MODEL
+} = {}) {
+  return requestJson(`${GROQ_API}/chat/completions`, {
+    method: 'POST',
+    headers: GROQ_HEADERS,
+    body: JSON.stringify({
+      model,
+      max_tokens: 1,
+      messages: buildMessages('ping')
+    }),
+    retries: 0
+  });
 }
