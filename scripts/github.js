@@ -37,15 +37,19 @@ export async function fetchOwnedRepos(user, { headers, ...httpOpts }) {
  * Fetch commits for every repo once, concurrently.
  * Returns a Map of "owner/name" -> commit messages (subject line only).
  */
-export async function fetchRepoActivity(repos, { since, headers, concurrency = 6, ...httpOpts }) {
+export async function fetchRepoActivity(
+  repos,
+  { since, until, headers, concurrency = 6, ...httpOpts }
+) {
   const sinceIso = new Date(since).toISOString();
+  const untilQuery = until ? `&until=${new Date(until).toISOString()}` : "";
 
   const perRepo = await mapWithConcurrency(repos, concurrency, async (repo) => {
     const fullName = `${repo.owner?.login}/${repo.name}`;
 
     try {
       const data = await requestJson(
-        `${GITHUB_API}/repos/${repo.owner?.login}/${repo.name}/commits?since=${sinceIso}`,
+        `${GITHUB_API}/repos/${repo.owner?.login}/${repo.name}/commits?since=${sinceIso}${untilQuery}`,
         { headers },
         httpOpts
       );

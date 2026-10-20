@@ -1,6 +1,8 @@
 import { describe, it, expect } from "vitest";
 import {
   LANGUAGES,
+  MAX_POST_LANGUAGES,
+  normalizeLanguages,
   parseLanguages,
   resolveLanguage,
   languageName,
@@ -30,7 +32,12 @@ describe("languages", () => {
   });
 
   it("only exposes configured languages", () => {
-    expect(Object.keys(LANGUAGES)).toEqual(["en", "es"]);
+    expect(Object.keys(LANGUAGES)).toEqual(["en", "es", "pt", "fr"]);
+  });
+
+  it("names the added languages", () => {
+    expect(languageName("pt")).toBe("Portuguese");
+    expect(languageName("fr")).toBe("French");
   });
 });
 
@@ -45,12 +52,23 @@ describe("parseLanguages", () => {
   });
 
   it("drops unsupported codes", () => {
-    expect(parseLanguages("en,de,fr")).toEqual(["en"]);
+    expect(parseLanguages("en,de,pt")).toEqual(["en", "pt"]);
   });
 
   it("returns an empty list when nothing is usable", () => {
     expect(parseLanguages("de")).toEqual([]);
     expect(parseLanguages("")).toEqual([]);
     expect(parseLanguages(undefined)).toEqual([]);
+  });
+});
+
+describe("normalizeLanguages", () => {
+  it("caps the selection at two", () => {
+    expect(normalizeLanguages(["en", "es", "pt"])).toEqual(["en", "es"]);
+    expect(MAX_POST_LANGUAGES).toBe(2);
+  });
+
+  it("falls back to English when nothing is usable", () => {
+    expect(normalizeLanguages("de")).toEqual(["en"]);
   });
 });

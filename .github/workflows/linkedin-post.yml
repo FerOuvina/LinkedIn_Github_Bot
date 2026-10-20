@@ -2,7 +2,10 @@ name: Daily GitHub → LinkedIn Summary
 
 on:
   schedule:
-    - cron: "0 13 * * 1-5"
+    # English 22:00
+    - cron: "0 22 * * 1-5"
+    # Spanish 23:00
+    - cron: "0 23 * * 1-5"
   workflow_dispatch:
 
 permissions:
@@ -11,8 +14,8 @@ permissions:
 jobs:
   post-summary:
     runs-on: ubuntu-latest
-    # Every fetch has its own timeout. This leaves room for the wait between
-    # language posts (up to 60 minutes in post.config.json).
+    # Every fetch has its own timeout. This leaves room for the wait when both
+    # languages share a time (up to 60 minutes in post.config.json).
     timeout-minutes: 90
 
     steps:
@@ -37,4 +40,7 @@ jobs:
           LINKEDIN_ACCESS_TOKEN: ${{ secrets.LINKEDIN_ACCESS_TOKEN }}
           LINKEDIN_AUTHOR_URN: ${{ secrets.LINKEDIN_AUTHOR_URN }}
           GROQ_API_KEY: ${{ secrets.GROQ_API_KEY }}
+          # Empty on manual runs; on scheduled runs this is the cron that fired,
+          # so the script posts only the languages due at that time.
+          SCHEDULE_CRON: ${{ github.event.schedule }}
         run: node ./scripts/dailySummary.js

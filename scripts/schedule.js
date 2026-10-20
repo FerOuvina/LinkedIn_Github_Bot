@@ -79,12 +79,19 @@ const FAVOURITE_CITIES = [
 ];
 
 export function isValidTimeZone(zone) {
+  if (typeof zone !== "string" || zone.trim() === "") return false;
   try {
     new Intl.DateTimeFormat("en-US", { timeZone: zone });
     return true;
   } catch {
     return false;
   }
+}
+
+/** "09:30" -> { hour: 9, minute: 30 }, or null for anything else. */
+export function parseTimeOfDay(value) {
+  const match = /^([01]\d|2[0-3]):([0-5]\d)$/.exec(String(value ?? "").trim());
+  return match ? { hour: Number(match[1]), minute: Number(match[2]) } : null;
 }
 
 /** Favourite cities plus every IANA zone, each with a friendly label. */
@@ -251,6 +258,50 @@ function zoneOffsetMinutes(timeZone, at) {
  * day-of-week as an OR, so "1-5" plus a specific date would fire on the date
  * too. Only one of the two may ever be constrained.
  */
+/**
+ * Convert one local time per language into its Actions cron, sharing the same
+ * weekday filter. Duplicate crons (two languages at the same time) are kept in
+ * the map; the caller dedupes them for the workflow.
+ */
+export function buildSchedule({ languages, times, timeZone, days = [], at = new Date() }) {
+  const crons = {};
+  const warnings = [];
+  let offset = null;
+
+  for (const language of languages) {
+    const parsed = parseTimeOfDay(times?.[language]);
+    if (!parsed) throw new Error(`Invalid time for ${language}: ${times?.[language]}`);
+
+    const converted = toUtcTime({ timeZone, hour: parsed.hour, minute: parsed.minute, at });
+    crons[language] = buildCron({
+      hour: converted.utcHour,
+      minute: converted.utcMinute,
+      days,
+    });
+    offset = offset ?? converted.offsetLabel;
+
+    for (const warning of converted.warnings) {
+      if (!warnings.includes(warning)) warnings.push(warning);
+    }
+  }
+
+  return { crons, warnings, offsetLabel: offset };
+}
+
+/** Group cron strings, remembering which languages share each one. */
+export function dedupeCrons(crons, languages = Object.keys(crons ?? {})) {
+  const byCron = new Map();
+
+  for (const language of languages) {
+    const cron = crons?.[language];
+    if (!cron) continue;
+    if (!byCron.has(cron)) byCron.set(cron, []);
+    byCron.get(cron).push(language);
+  }
+
+  return [...byCron.entries()].map(([cron, codes]) => ({ cron, languages: codes }));
+}
+
 export function buildCron({ hour, minute = 0, days = [] }) {
   if (!Number.isInteger(hour) || hour < 0 || hour > 23) {
     throw new Error(`Hour must be 0-23, got ${hour}`);
@@ -317,45 +368,90 @@ function range(start, end) {
   return out;
 }
 
-const CRON_LINE = /(\bcron:\s*)(["']?)([^"'\r\n]*)\2/;
+const CRON_LINE = /^\s*-\s*cron:\s*["']?([^"'\r\n]+)["']?\s*$/gm;
 
-/** The cron currently committed in the workflow, if there is one. */
-export function readWorkflowCron(workflowPath) {
-  if (!existsSync(workflowPath)) return null;
+/** Every cron committed in the workflow, in file order. */
+export function readWorkflowCrons(workflowPath) {
+  if (!existsSync(workflowPath)) return [];
 
   const source = readFileSync(workflowPath, "utf8");
-  const match = source.match(CRON_LINE);
-  return match ? match[3].trim() : null;
+  return [...source.matchAll(CRON_LINE)].map((match) => match[1].trim());
+}
+
+/** The first committed cron, kept for callers that still expect one. */
+export function readWorkflowCron(workflowPath) {
+  return readWorkflowCrons(workflowPath)[0] ?? null;
 }
 
 /**
- * Replace the cron line, touching nothing else in the file. Refuses to guess if
- * the shape is not what it expects.
- * @returns {{ok: boolean, previous: string|null, cron: string, reason?: string}}
+ * Replace the whole `schedule:` block with one cron per entry. Everything else
+ * in the workflow is left byte-for-byte alone.
+ * @returns {{ok: boolean, previous: string[], crons: string[], reason?: string}}
  */
-export function writeWorkflowCron(workflowPath, cron) {
+export function writeWorkflowCrons(workflowPath, entries) {
   if (!existsSync(workflowPath)) {
     return { ok: false, reason: `Not found: ${workflowPath}` };
   }
 
+  const list = (entries ?? [])
+    .map((entry) => ({
+      cron: String(entry?.cron ?? "").trim(),
+      label: entry?.label ? String(entry.label).trim() : null,
+    }))
+    .filter((entry) => /^\S+ \S+ \S+ \S+ \S+$/.test(entry.cron));
+
+  if (list.length === 0) {
+    return { ok: false, reason: "At least one valid cron is required." };
+  }
+
   const source = readFileSync(workflowPath, "utf8");
-  const matches = source.match(new RegExp(CRON_LINE.source, "g")) ?? [];
+  const previous = readWorkflowCrons(workflowPath);
+  const lines = source.split(/\r?\n/);
+  const index = lines.findIndex((line) => /^\s*schedule:\s*$/.test(line));
 
-  if (matches.length === 0) {
-    return { ok: false, reason: "No cron: line found in the workflow." };
-  }
-  if (matches.length > 1) {
-    return {
-      ok: false,
-      reason: `Found ${matches.length} cron: lines. Edit the workflow by hand.`,
-    };
+  if (index === -1) {
+    return { ok: false, reason: "No schedule: block found in the workflow." };
   }
 
-  const previous = source.match(CRON_LINE)[3].trim();
-  const next = source.replace(CRON_LINE, `$1"${cron}"`);
+  const indent = lines[index].match(/^\s*/)[0];
+  const childIndent = `${indent}  `;
 
+  let end = index + 1;
+  while (end < lines.length) {
+    const line = lines[end];
+    if (line.trim() === "" || !line.startsWith(childIndent)) break;
+    end++;
+  }
+
+  const block = [];
+  for (const entry of list) {
+    if (entry.label) block.push(`${childIndent}# ${entry.label}`);
+    block.push(`${childIndent}- cron: "${entry.cron}"`);
+  }
+
+  const next = [...lines.slice(0, index + 1), ...block, ...lines.slice(end)].join("\n");
   writeFileSync(workflowPath, next, "utf8");
-  return { ok: true, previous, cron };
+
+  return { ok: true, previous, crons: list.map((entry) => entry.cron) };
+}
+
+/**
+ * End of the shared commit window: the earliest configured post time today, in
+ * UTC. Every language posts from the same 24 hours ending here, so a later post
+ * does not include newer commits.
+ */
+export function commitWindowEnd({ timeZone, times, languages }, at = new Date()) {
+  const codes = languages ?? Object.keys(times ?? {});
+  const earliest = codes
+    .map((code) => times?.[code])
+    .filter(Boolean)
+    .sort()[0];
+
+  const parsed = parseTimeOfDay(earliest);
+  if (!parsed) return null;
+
+  const converted = toUtcTime({ timeZone, hour: parsed.hour, minute: parsed.minute, at });
+  return new Date(converted.utcDate);
 }
 
 /** The next few times the job will actually run, in both zones. */

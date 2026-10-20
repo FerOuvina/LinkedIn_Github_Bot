@@ -105,6 +105,24 @@ describe("fetchRepoActivity", () => {
     }
   });
 
+  it("passes an explicit until parameter through", async () => {
+    const fetchImpl = vi.fn().mockResolvedValue(jsonResponse(commits("feat: x")));
+    const until = "2026-01-02T00:00:00.000Z";
+
+    await fetchRepoActivity(repos, {
+      since: SINCE,
+      until,
+      headers: HEADERS,
+      fetchImpl,
+      ...FAST,
+    });
+
+    for (const [url] of fetchImpl.mock.calls) {
+      expect(url).toContain(`since=${SINCE}`);
+      expect(url).toContain(`until=${until}`);
+    }
+  });
+
   it("keys results by owner/name and keeps only subject lines", async () => {
     const fetchImpl = vi.fn().mockImplementation(async (url) =>
       url.includes("/alpha/")

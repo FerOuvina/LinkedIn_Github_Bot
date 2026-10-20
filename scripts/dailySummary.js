@@ -40,6 +40,9 @@ export async function main() {
     case "no-significant-commits":
       console.log("ℹ️ Commits found, but none scored high enough to post.");
       break;
+    case "not-scheduled":
+      console.log("ℹ️ No language is scheduled for this run.");
+      break;
     default:
       throw new Error(`Unexpected run() result: ${result}`);
   }

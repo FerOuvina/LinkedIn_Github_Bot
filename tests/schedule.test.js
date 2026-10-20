@@ -4,13 +4,17 @@ import { tmpdir } from "node:os";
 import path from "node:path";
 import {
   buildCron,
+  buildSchedule,
+  commitWindowEnd,
+  dedupeCrons,
   parseCron,
+  parseTimeOfDay,
   toUtcTime,
   nextRuns,
   listTimeZones,
   offsetLabel,
-  readWorkflowCron,
-  writeWorkflowCron,
+  readWorkflowCrons,
+  writeWorkflowCrons,
   isValidTimeZone,
   DAYS,
 } from "../scripts/schedule.js";
@@ -71,6 +75,112 @@ describe("parseCron", () => {
     expect(parseCron("0 9 15 * 1-5")).toBeNull();
     expect(parseCron("0 9 * *")).toBeNull();
     expect(parseCron("nonsense")).toBeNull();
+  });
+});
+
+describe("parseTimeOfDay", () => {
+  it("parses a 24-hour wall-clock time", () => {
+    expect(parseTimeOfDay("09:30")).toEqual({ hour: 9, minute: 30 });
+    expect(parseTimeOfDay("23:59")).toEqual({ hour: 23, minute: 59 });
+  });
+
+  it("rejects ambiguous or impossible values", () => {
+    for (const value of ["9:30", "24:00", "09:60", "", null, undefined, "noon"]) {
+      expect(parseTimeOfDay(value), String(value)).toBeNull();
+    }
+  });
+});
+
+describe("buildSchedule", () => {
+  it("builds one cron per language with the same days", () => {
+    const result = buildSchedule({
+      languages: ["en", "es"],
+      times: { en: "09:00", es: "18:00" },
+      timeZone: "UTC",
+      days: [1, 2, 3, 4, 5],
+      at: WINTER,
+    });
+
+    expect(result.crons).toEqual({
+      en: "0 9 * * 1-5",
+      es: "0 18 * * 1-5",
+    });
+    expect(result.offsetLabel).toBe("UTC+00:00");
+    expect(result.warnings).toEqual([]);
+  });
+
+  it("converts each language's local time separately", () => {
+    const result = buildSchedule({
+      languages: ["en", "es"],
+      times: { en: "09:00", es: "18:00" },
+      timeZone: "Asia/Tokyo",
+      days: [],
+      at: WINTER,
+    });
+
+    expect(result.crons).toEqual({
+      en: "0 0 * * *",
+      es: "0 9 * * *",
+    });
+    expect(result.offsetLabel).toBe("UTC+09:00");
+  });
+
+  it("rejects a language without a valid time", () => {
+    expect(() =>
+      buildSchedule({
+        languages: ["en"],
+        times: {},
+        timeZone: "UTC",
+        days: [],
+        at: WINTER,
+      })
+    ).toThrow(/Invalid time for en/);
+  });
+});
+
+describe("dedupeCrons", () => {
+  it("groups languages that share a cron", () => {
+    expect(
+      dedupeCrons(
+        { en: "0 9 * * 1", es: "0 9 * * 1", fr: "0 18 * * 1" },
+        ["en", "es", "fr"]
+      )
+    ).toEqual([
+      { cron: "0 9 * * 1", languages: ["en", "es"] },
+      { cron: "0 18 * * 1", languages: ["fr"] },
+    ]);
+  });
+});
+
+describe("commitWindowEnd", () => {
+  it("ends the window at the earliest configured time", () => {
+    const end = commitWindowEnd(
+      {
+        timeZone: "UTC",
+        times: { en: "09:00", es: "18:00" },
+        languages: ["en", "es"],
+      },
+      WINTER
+    );
+
+    expect(end.toISOString()).toBe("2026-01-15T09:00:00.000Z");
+  });
+
+  it("converts that time from the configured zone", () => {
+    const end = commitWindowEnd(
+      {
+        timeZone: "Asia/Tokyo",
+        times: { en: "09:00", es: "18:00" },
+        languages: ["en", "es"],
+      },
+      WINTER
+    );
+
+    expect(end.toISOString()).toBe("2026-01-15T00:00:00.000Z");
+  });
+
+  it("returns null when there is no valid time", () => {
+    expect(commitWindowEnd({ timeZone: "UTC", times: {}, languages: [] }, WINTER)).toBeNull();
   });
 });
 
@@ -206,47 +316,71 @@ jobs:
     writeFileSync(file, WORKFLOW, "utf8");
   }
 
-  it("reads the committed cron", () => {
+  it("reads every committed cron", () => {
     setup();
-    expect(readWorkflowCron(file)).toBe("0 18 * * *");
-    rmSync(dir, { recursive: true, force: true });
+    expect(readWorkflowCrons(file)).toEqual(["0 18 * * *"]);
   });
 
-  it("returns null when the workflow is missing", () => {
-    expect(readWorkflowCron(path.join(tmpdir(), "nope-does-not-exist.yml"))).toBeNull();
+  it("returns an empty list when the workflow is missing", () => {
+    expect(readWorkflowCrons(path.join(tmpdir(), "nope-does-not-exist.yml"))).toEqual([]);
   });
 
-  it("rewrites only the cron and leaves the rest alone", () => {
+  it("rewrites the schedule block and leaves the rest alone", () => {
     setup();
-    const result = writeWorkflowCron(file, "30 9 * * 1-5");
+    const result = writeWorkflowCrons(file, [
+      { cron: "30 9 * * 1-5", label: "English 09:30" },
+      { cron: "0 18 * * 1-5", label: "Spanish 18:00" },
+    ]);
 
     expect(result.ok).toBe(true);
-    expect(result.previous).toBe("0 18 * * *");
+    expect(result.previous).toEqual(["0 18 * * *"]);
 
     const after = readFileSync(file, "utf8");
+    expect(after).toContain("# English 09:30");
     expect(after).toContain('- cron: "30 9 * * 1-5"');
+    expect(after).toContain("# Spanish 18:00");
+    expect(after).toContain('- cron: "0 18 * * 1-5"');
     expect(after).toContain("workflow_dispatch:");
     expect(after).toContain("runs-on: ubuntu-latest");
-    expect(after).not.toContain('- cron: "0 18 * * *"');
+    expect(readWorkflowCrons(file)).toEqual(["30 9 * * 1-5", "0 18 * * 1-5"]);
     rmSync(dir, { recursive: true, force: true });
   });
 
-  it("refuses to guess when there are several crons", () => {
+  it("replaces an existing block instead of stacking crons", () => {
     setup();
-    writeFileSync(file, WORKFLOW.replace("runs-on", '- cron: "5 5 * * *"\n    runs-on'), "utf8");
+    writeFileSync(
+      file,
+      WORKFLOW.replace("- cron:", '- cron: "5 5 * * *"\n    - cron:'),
+      "utf8"
+    );
 
-    const result = writeWorkflowCron(file, "30 9 * * *");
-    expect(result.ok).toBe(false);
-    expect(result.reason).toMatch(/2 cron/);
+    writeWorkflowCrons(file, [{ cron: "30 9 * * *" }]);
+
+    expect(readWorkflowCrons(file)).toEqual(["30 9 * * *"]);
+    expect(readFileSync(file, "utf8")).not.toContain("5 5 * * *");
     rmSync(dir, { recursive: true, force: true });
   });
 
-  it("reports a missing cron line instead of writing a new one", () => {
+  it("reports a missing schedule block instead of writing one", () => {
     setup();
     writeFileSync(file, "name: Daily\non:\n  workflow_dispatch:\n", "utf8");
 
-    expect(writeWorkflowCron(file, "30 9 * * *").ok).toBe(false);
+    const result = writeWorkflowCrons(file, [{ cron: "30 9 * * *" }]);
+    expect(result.ok).toBe(false);
+    expect(result.reason).toMatch(/schedule/);
     rmSync(dir, { recursive: true, force: true });
+  });
+
+  it("requires at least one valid cron", () => {
+    setup();
+
+    expect(writeWorkflowCrons(file, []).ok).toBe(false);
+    expect(writeWorkflowCrons(file, [{ cron: "nonsense" }]).ok).toBe(false);
+    rmSync(dir, { recursive: true, force: true });
+  });
+
+  it("reports a missing workflow", () => {
+    expect(writeWorkflowCrons(path.join(tmpdir(), "absent.yml"), [{ cron: "0 9 * * *" }]).ok).toBe(false);
   });
 });
 
