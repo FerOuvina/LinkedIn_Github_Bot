@@ -4,7 +4,6 @@ export const GITHUB_TOKEN = process.env.GITHUB_TOKEN;
 export const LINKEDIN_TOKEN = process.env.LINKEDIN_ACCESS_TOKEN;
 export const GROQ_API_KEY = process.env.GROQ_API_KEY;
 export const GROQ_MODEL = process.env.GROQ_MODEL || "qwen/qwen3.8-27b";
-export const POST_LANGUAGE = process.env.POST_LANGUAGE || "en";
 export const LINKEDIN_AUTHOR = process.env.LINKEDIN_AUTHOR_URN;
 export const HUB_USER = process.env.HUB_USER;
 

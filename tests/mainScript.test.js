@@ -63,8 +63,19 @@ function githubHandlers(commitsByRepo, llmContent = "AI post body") {
 
 describe("run()", () => {
   let logSpy;
+  const ORIGINAL = {
+    languages: process.env.POST_LANGUAGES,
+    gap: process.env.POST_GAP_MINUTES,
+    language: process.env.POST_LANGUAGE,
+  };
 
   beforeEach(() => {
+    // Keep the committed post.config.json out of the tests unless a test
+    // deliberately asks for more than one language.
+    process.env.POST_LANGUAGES = "en";
+    delete process.env.POST_GAP_MINUTES;
+    delete process.env.POST_LANGUAGE;
+
     logSpy = vi.spyOn(console, "log").mockImplementation(() => {});
     vi.spyOn(console, "error").mockImplementation(() => {});
   });
@@ -72,6 +83,15 @@ describe("run()", () => {
   afterEach(() => {
     vi.unstubAllGlobals();
     vi.restoreAllMocks();
+
+    for (const [key, value] of [
+      ["POST_LANGUAGES", ORIGINAL.languages],
+      ["POST_GAP_MINUTES", ORIGINAL.gap],
+      ["POST_LANGUAGE", ORIGINAL.language],
+    ]) {
+      if (value === undefined) delete process.env[key];
+      else process.env[key] = value;
+    }
   });
 
   it("returns early when the account had no activity", async () => {
@@ -146,6 +166,23 @@ describe("run()", () => {
     expect(printed).not.toContain("https://github.com/me/wrong-repo");
   });
 
+  it("adds links the model left out for any repository in the commits", async () => {
+    mockFetch(
+      githubHandlers({
+        alpha: [commit("feat: add auth")],
+        beta: [commit("fix: login crash")],
+      })
+    );
+    const run = await loadRun({ dryRun: true });
+
+    await run();
+
+    const printed = logSpy.mock.calls.flat().join("\n");
+    expect(printed).toContain("Repositories:");
+    expect(printed).toContain("https://github.com/me/alpha");
+    expect(printed).toContain("https://github.com/me/beta");
+  });
+
   it("publishes to LinkedIn when not in dry-run mode", async () => {
     const calls = mockFetch(
       githubHandlers({ alpha: [commit("feat: add auth")] })
@@ -164,7 +201,7 @@ describe("run()", () => {
     expect(
       body.specificContent["com.linkedin.ugc.ShareContent"].shareCommentary.text
     ).toContain("AI post body");
-    expect(logSpy).toHaveBeenCalledWith("LinkedIn post published.");
+    expect(logSpy).toHaveBeenCalledWith("LinkedIn post published in English.");
   });
 
   it("fetches each repo's commits exactly once", async () => {
@@ -231,42 +268,68 @@ describe("run()", () => {
     expect(sent).not.toContain("{hubUser}");
   });
 
-  it("defaults to English when no language is configured", async () => {
-    const previous = process.env.POST_LANGUAGE;
-    delete process.env.POST_LANGUAGE;
-    try {
-      const calls = mockFetch(
-        githubHandlers({ alpha: [commit("feat: add auth")] })
-      );
-      const run = await loadRun({ dryRun: true });
-      await run();
+  it("asks for the post in English by default", async () => {
+    const calls = mockFetch(
+      githubHandlers({ alpha: [commit("feat: add auth")] })
+    );
+    const run = await loadRun({ dryRun: true });
+    await run();
 
-      const hfCall = calls.find((c) => c.url.includes("api.groq.com"));
-      const sent = JSON.parse(hfCall.options.body).messages[1].content;
+    const hfCall = calls.find((c) => c.url.includes("api.groq.com"));
+    const sent = JSON.parse(hfCall.options.body).messages[1].content;
 
-      expect(sent).toContain("Write the LinkedIn post in English.");
-    } finally {
-      if (previous !== undefined) process.env.POST_LANGUAGE = previous;
-    }
+    expect(sent.startsWith("Write the LinkedIn post in English.")).toBe(true);
   });
 
   it("asks for the post in the configured language", async () => {
-    const previous = process.env.POST_LANGUAGE;
-    process.env.POST_LANGUAGE = "es";
-    try {
-      const calls = mockFetch(
-        githubHandlers({ alpha: [commit("feat: add auth")] })
-      );
-      const run = await loadRun({ dryRun: true });
-      await run();
+    process.env.POST_LANGUAGES = "es";
+    const calls = mockFetch(
+      githubHandlers({ alpha: [commit("feat: add auth")] })
+    );
+    const run = await loadRun({ dryRun: true });
+    await run();
 
-      const hfCall = calls.find((c) => c.url.includes("api.groq.com"));
-      const sent = JSON.parse(hfCall.options.body).messages[1].content;
+    const hfCall = calls.find((c) => c.url.includes("api.groq.com"));
+    const sent = JSON.parse(hfCall.options.body).messages[1].content;
 
-      expect(sent).toContain("Write the LinkedIn post in Spanish.");
-    } finally {
-      if (previous === undefined) delete process.env.POST_LANGUAGE;
-      else process.env.POST_LANGUAGE = previous;
-    }
+    expect(sent.startsWith("Write the LinkedIn post in Spanish.")).toBe(true);
+  });
+
+  it("publishes once per language, with the configured gap", async () => {
+    process.env.POST_LANGUAGES = "en,es";
+    process.env.POST_GAP_MINUTES = "5";
+    const calls = mockFetch(
+      githubHandlers({ alpha: [commit("feat: add auth")] })
+    );
+    const run = await loadRun({ dryRun: false });
+    const sleepImpl = vi.fn().mockResolvedValue();
+
+    const result = await run({ sleepImpl });
+
+    expect(result).toBe("published");
+    expect(calls.filter((c) => c.url.includes("api.groq.com"))).toHaveLength(2);
+    expect(calls.filter((c) => c.url.includes("api.linkedin.com"))).toHaveLength(2);
+    expect(sleepImpl).toHaveBeenCalledOnce();
+    expect(sleepImpl).toHaveBeenCalledWith(5 * 60_000);
+  });
+
+  it("prints every language and never waits on a dry run", async () => {
+    process.env.POST_LANGUAGES = "en,es";
+    const calls = mockFetch(
+      githubHandlers({ alpha: [commit("feat: add auth")] })
+    );
+    const run = await loadRun({ dryRun: true });
+    const sleepImpl = vi.fn();
+
+    const result = await run({ sleepImpl });
+
+    expect(result).toBe("dry-run");
+    expect(sleepImpl).not.toHaveBeenCalled();
+    expect(calls.filter((c) => c.url.includes("api.groq.com"))).toHaveLength(2);
+    expect(calls.some((c) => c.url.includes("api.linkedin.com"))).toBe(false);
+
+    const printed = logSpy.mock.calls.flat().join("\n");
+    expect(printed).toContain("English LinkedIn post");
+    expect(printed).toContain("Spanish LinkedIn post");
   });
 });

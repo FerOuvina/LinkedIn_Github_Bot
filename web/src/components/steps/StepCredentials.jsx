@@ -29,17 +29,6 @@ const FIELDS = [
     placeholder: "qwen/qwen3.8-27b",
     help: "Leave blank to use the default. Must be a chat model.",
   },
-  {
-    name: "POST_LANGUAGE",
-    label: "Post language",
-    type: "select",
-    default: "en",
-    options: [
-      { value: "en", label: "English" },
-      { value: "es", label: "Spanish" },
-    ],
-    help: "The bot writes the LinkedIn post in this language.",
-  },
 ];
 
 export default function StepCredentials() {

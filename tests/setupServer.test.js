@@ -377,6 +377,7 @@ on:
 describe("prompt routes", () => {
   let dir;
   let promptPath;
+  let configPath;
 
   const DEFAULT_PROMPT = `Write a concise LinkedIn post summarizing the following commits from my GitHub repositories. For the github user use {hubUser}.
 Make it professional, readable, and engaging. Use emojis for features and fixes.
@@ -388,45 +389,87 @@ Commits:
   beforeEach(() => {
     dir = mkdtempSync(path.join(tmpdir(), "prompt-"));
     promptPath = path.join(dir, "prompt.md");
+    configPath = path.join(dir, "post.config.json");
     writeFileSync(promptPath, DEFAULT_PROMPT, "utf8");
   });
 
   afterEach(() => rmSync(dir, { recursive: true, force: true }));
 
-  it("reads the committed prompt", async () => {
-    const s = await start({ promptPath });
+  it("reads the committed prompt and settings", async () => {
+    writeFileSync(
+      configPath,
+      JSON.stringify({ languages: ["en", "es"], gapMinutes: 5 }),
+      "utf8"
+    );
+    const s = await start({ promptPath, configPath });
     const body = await (await s.get("/api/prompt")).json();
 
     expect(body.ok).toBe(true);
     expect(body.prompt).toBe(DEFAULT_PROMPT);
     expect(body.promptPath).toBe(promptPath);
+    expect(body.config).toEqual({ languages: ["en", "es"], gapMinutes: 5 });
+    expect(body.configPath).toBe(configPath);
   });
 
   it("reports null prompt when the file is missing", async () => {
-    const s = await start({ promptPath: path.join(dir, "absent.md") });
+    const s = await start({
+      promptPath: path.join(dir, "absent.md"),
+      configPath,
+    });
     const body = await (await s.get("/api/prompt")).json();
 
     expect(body.ok).toBe(true);
     expect(body.prompt).toBeNull();
+    expect(body.config.languages).toEqual(["en"]);
   });
 
-  it("writes the prompt and persists it", async () => {
-    const s = await start({ promptPath });
+  it("writes the prompt and settings and persists them", async () => {
+    const s = await start({ promptPath, configPath });
     const newPrompt = "Custom prompt with {commits} and {hubUser}.";
-    const res = await s.post("/api/prompt", { prompt: newPrompt });
+    const res = await s.post("/api/prompt", {
+      prompt: newPrompt,
+      languages: ["en", "es"],
+      gapMinutes: 10,
+    });
     const body = await res.json();
 
     expect(res.status).toBe(200);
     expect(body.ok).toBe(true);
     expect(readFileSync(promptPath, "utf8")).toBe(newPrompt);
+    expect(JSON.parse(readFileSync(configPath, "utf8"))).toEqual({
+      languages: ["en", "es"],
+      gapMinutes: 10,
+    });
   });
 
   it("rejects a non-string prompt", async () => {
-    const s = await start({ promptPath });
+    const s = await start({ promptPath, configPath });
     const res = await s.post("/api/prompt", { prompt: 123 });
 
     expect(res.status).toBe(400);
     expect((await res.json()).error).toMatch(/prompt must be a string/);
+  });
+
+  it("rejects a language list with no supported codes", async () => {
+    const s = await start({ promptPath, configPath });
+    const res = await s.post("/api/prompt", {
+      prompt: "p",
+      languages: ["de"],
+    });
+
+    expect(res.status).toBe(400);
+    expect((await res.json()).error).toMatch(/supported code/);
+  });
+
+  it("rejects a non-numeric gap", async () => {
+    const s = await start({ promptPath, configPath });
+    const res = await s.post("/api/prompt", {
+      prompt: "p",
+      gapMinutes: "soon",
+    });
+
+    expect(res.status).toBe(400);
+    expect((await res.json()).error).toMatch(/gapMinutes must be a number/);
   });
 });
 

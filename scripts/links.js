@@ -7,10 +7,6 @@ export function repoUrl(fullName) {
 const REPO_URL =
   /(?:https?:\/\/)?(?:www\.)?github\.com\/([^\s/?#)\]]+)\/([^\s/?#)\]]+)\/?(?=[\s?#)\].,;:!?]|$)/gi;
 
-function normalize(url) {
-  return String(url).replace(/\/+$/, "").toLowerCase();
-}
-
 function repoKey(owner, name) {
   return `${owner}/${name}`.toLowerCase();
 }
@@ -52,4 +48,29 @@ export function enforceRepoLinks(text, allowedUrls) {
 
     return replacement + trailing;
   });
+}
+
+const LINK_LABELS = {
+  en: { one: "Repository", many: "Repositories" },
+  es: { one: "Repositorio", many: "Repositorios" },
+};
+
+/**
+ * Append any repository link the model left out. The post already lists every
+ * repository it was built from, so a missing link is always a generation miss,
+ * not a reason to omit it.
+ */
+export function addMissingRepoLinks(text, allowedUrls, language = "en") {
+  if (typeof text !== "string") return text;
+
+  const missing = [...new Set(allowedUrls)].filter(
+    (url) => url && !text.includes(url)
+  );
+  if (missing.length === 0) return text;
+
+  const labels = LINK_LABELS[language] ?? LINK_LABELS.en;
+  const label = missing.length === 1 ? labels.one : labels.many;
+  const list = missing.map((url) => `- ${url}`).join("\n");
+
+  return `${text.trimEnd()}\n\n${label}:\n${list}`;
 }

@@ -10,6 +10,22 @@ export function resolveLanguage(code) {
   return Object.hasOwn(LANGUAGES, key) ? key : "en";
 }
 
+/**
+ * Parse a language list ("en,es", ["en", "es"]). Unknown codes are dropped;
+ * an empty result means the caller should apply its own default.
+ */
+export function parseLanguages(value) {
+  const parts = Array.isArray(value) ? value : String(value ?? "").split(",");
+  const codes = [];
+
+  for (const part of parts) {
+    const key = String(part).trim().toLowerCase();
+    if (Object.hasOwn(LANGUAGES, key) && !codes.includes(key)) codes.push(key);
+  }
+
+  return codes;
+}
+
 export function languageName(code) {
   return LANGUAGES[resolveLanguage(code)];
 }

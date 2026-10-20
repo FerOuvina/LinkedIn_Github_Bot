@@ -1,6 +1,7 @@
 import { describe, it, expect } from "vitest";
 import {
   LANGUAGES,
+  parseLanguages,
   resolveLanguage,
   languageName,
   languageInstruction,
@@ -30,5 +31,26 @@ describe("languages", () => {
 
   it("only exposes configured languages", () => {
     expect(Object.keys(LANGUAGES)).toEqual(["en", "es"]);
+  });
+});
+
+describe("parseLanguages", () => {
+  it("parses a comma-separated list in order", () => {
+    expect(parseLanguages("en,es")).toEqual(["en", "es"]);
+    expect(parseLanguages(" ES , en ")).toEqual(["es", "en"]);
+  });
+
+  it("accepts an array and dedupes it", () => {
+    expect(parseLanguages(["es", "es", "en"])).toEqual(["es", "en"]);
+  });
+
+  it("drops unsupported codes", () => {
+    expect(parseLanguages("en,de,fr")).toEqual(["en"]);
+  });
+
+  it("returns an empty list when nothing is usable", () => {
+    expect(parseLanguages("de")).toEqual([]);
+    expect(parseLanguages("")).toEqual([]);
+    expect(parseLanguages(undefined)).toEqual([]);
   });
 });

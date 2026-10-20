@@ -1,5 +1,9 @@
 import { describe, it, expect } from "vitest";
-import { enforceRepoLinks, repoUrl } from "../scripts/links.js";
+import {
+  addMissingRepoLinks,
+  enforceRepoLinks,
+  repoUrl,
+} from "../scripts/links.js";
 
 const ALLOWED = [
   "https://github.com/me/alpha",
@@ -67,5 +71,50 @@ describe("enforceRepoLinks", () => {
 
   it("returns non-string input unchanged", () => {
     expect(enforceRepoLinks(null, ALLOWED)).toBe(null);
+  });
+});
+
+describe("addMissingRepoLinks", () => {
+  it("leaves the text alone when every repository is already linked", () => {
+    const text =
+      "See https://github.com/me/alpha and https://github.com/me/beta.";
+
+    expect(addMissingRepoLinks(text, ALLOWED)).toBe(text);
+  });
+
+  it("appends only the repositories that are missing", () => {
+    const text = "See https://github.com/me/alpha.";
+
+    expect(addMissingRepoLinks(text, ALLOWED)).toBe(
+      "See https://github.com/me/alpha.\n\nRepository:\n- https://github.com/me/beta"
+    );
+  });
+
+  it("uses a plural label for several missing repositories", () => {
+    const text = "Shipped a few things today.";
+
+    expect(addMissingRepoLinks(text, ALLOWED)).toBe(
+      "Shipped a few things today.\n\nRepositories:\n- https://github.com/me/alpha\n- https://github.com/me/beta"
+    );
+  });
+
+  it("uses Spanish labels", () => {
+    const text = "Hoy avancé un par de cosas.";
+
+    expect(addMissingRepoLinks(text, ALLOWED, "es")).toContain(
+      "Repositorios:\n- https://github.com/me/alpha"
+    );
+  });
+
+  it("ignores duplicate URLs", () => {
+    const text = "Shipped it.";
+
+    expect(addMissingRepoLinks(text, [ALLOWED[0], ALLOWED[0]])).toBe(
+      "Shipped it.\n\nRepository:\n- https://github.com/me/alpha"
+    );
+  });
+
+  it("returns non-string input unchanged", () => {
+    expect(addMissingRepoLinks(null, ALLOWED)).toBe(null);
   });
 });

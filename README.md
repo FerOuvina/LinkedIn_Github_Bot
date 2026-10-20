@@ -30,7 +30,8 @@ You need Node 24 (see `.nvmrc`) and a `.env` file with:
 | `LINKEDIN_AUTHOR_URN` | Your `urn:li:person:...` identifier |
 | `GROQ_API_KEY` | Key for the LLM ([console.groq.com](https://console.groq.com)) |
 | `GROQ_MODEL` | Optional. Defaults to the model in `scripts/consts.js` |
-| `POST_LANGUAGE` | Optional. Language for the post: `en` (default) or `es` |
+| `POST_LANGUAGES` | Optional. Overrides `post.config.json`; comma-separated languages, e.g. `en,es` |
+| `POST_GAP_MINUTES` | Optional. Overrides the gap between language posts (default `5`) |
 
 Pick a **chat** model. Groq's catalogue mixes in models that can't write prose —
 `llama-prompt-guard-*` and `*-safeguard-*` are safety classifiers, and

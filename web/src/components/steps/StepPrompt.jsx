@@ -7,8 +7,16 @@ const PLACEHOLDERS = [
   { name: "{hubUser}", description: "replaced with your GitHub username" },
 ];
 
+/** Languages the bot can write. Each selected one becomes a separate post. */
+const LANGUAGES = [
+  { code: "en", label: "English" },
+  { code: "es", label: "Spanish" },
+];
+
 export default function StepPrompt() {
   const [prompt, setPrompt] = useState("");
+  const [languages, setLanguages] = useState(["en"]);
+  const [gapMinutes, setGapMinutes] = useState(5);
   const [busy, setBusy] = useState(false);
   const [saved, setSaved] = useState(false);
   const [error, setError] = useState("");
@@ -18,16 +26,28 @@ export default function StepPrompt() {
       .prompt()
       .then((result) => {
         setPrompt(result.prompt ?? "");
+        setLanguages(result.config?.languages ?? ["en"]);
+        setGapMinutes(result.config?.gapMinutes ?? 5);
         setSaved(false);
       })
       .catch((err) => setError(err.message));
   }, []);
 
+  const toggleLanguage = (code) => {
+    setLanguages((prev) => {
+      if (prev.includes(code)) {
+        return prev.length === 1 ? prev : prev.filter((item) => item !== code);
+      }
+      return [...prev, code];
+    });
+    setSaved(false);
+  };
+
   const save = async () => {
     setBusy(true);
     setError("");
     try {
-      await api.savePrompt(prompt);
+      await api.savePrompt(prompt, { languages, gapMinutes: Number(gapMinutes) });
       setSaved(true);
     } catch (err) {
       setError(err.message);
@@ -44,6 +64,57 @@ export default function StepPrompt() {
         <code className="font-mono text-primary">prompt.md</code>, so it is
         version-controlled and picked up by the scheduled job automatically.
       </p>
+
+      <div className="mb-6 grid max-w-2xl gap-6 sm:grid-cols-2">
+        <div>
+          <span className="ff-mono mb-2 block text-[11px] uppercase tracking-[0.2em] text-bone">
+            Post languages
+          </span>
+          <div className="flex flex-wrap gap-4">
+            {LANGUAGES.map((language) => (
+              <label
+                key={language.code}
+                className="flex cursor-pointer items-center gap-2 text-sm text-ash"
+              >
+                <input
+                  type="checkbox"
+                  checked={languages.includes(language.code)}
+                  onChange={() => toggleLanguage(language.code)}
+                  className="size-4 accent-primary"
+                />
+                {language.label}
+              </label>
+            ))}
+          </div>
+          <p className="mt-2 text-xs text-ash">
+            One post per selected language. Keep at least one checked.
+          </p>
+        </div>
+
+        <div>
+          <label
+            htmlFor="post-gap"
+            className="ff-mono mb-2 block text-[11px] uppercase tracking-[0.2em] text-bone"
+          >
+            Minutes between posts
+          </label>
+          <input
+            id="post-gap"
+            type="number"
+            min="1"
+            max="60"
+            value={gapMinutes}
+            onChange={(e) => {
+              setGapMinutes(e.target.value);
+              setSaved(false);
+            }}
+            className="ff-input max-w-32"
+          />
+          <p className="mt-2 text-xs text-ash">
+            Only used when more than one language is selected.
+          </p>
+        </div>
+      </div>
 
       <div className="mb-6 max-w-2xl">
         <label className="ff-mono mb-2 block text-[11px] uppercase tracking-[0.2em] text-bone">
@@ -97,8 +168,9 @@ export default function StepPrompt() {
       {saved && (
         <div className="panel mb-6 border-acid p-4 text-acid">
           Prompt saved to{" "}
-          <code className="font-mono text-primary">prompt.md</code>{" "}
-          — commit and push the file for the scheduled job to use it.
+          <code className="font-mono text-primary">prompt.md</code> and settings
+          to <code className="font-mono text-primary">post.config.json</code>{" "}
+          — commit and push both files for the scheduled job to use them.
         </div>
       )}
     </section>
