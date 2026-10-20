@@ -1,7 +1,7 @@
 import "dotenv/config";
 import { createServer } from "node:http";
 import { spawn } from "node:child_process";
-import { existsSync, readFileSync, statSync } from "node:fs";
+import { existsSync, readFileSync, statSync, writeFileSync } from "node:fs";
 import path from "node:path";
 import { pathToFileURL, fileURLToPath } from "node:url";
 import { randomBytes, timingSafeEqual } from "node:crypto";
@@ -205,6 +205,7 @@ linkedin,
   docsDir,
   webBase = WEB_BASE,
   workflowPath,
+  promptPath,
 } = {}) {
   /** Declared early so the LinkedIn adapter can read the bound port. */
   let server;
@@ -228,6 +229,9 @@ linkedin,
     workflowPath ??
     path.join(path.dirname(fileURLToPath(import.meta.url)), "..", DEFAULT_WORKFLOW);
 
+  const resolvedPromptPath =
+    promptPath ??
+    path.join(path.dirname(fileURLToPath(import.meta.url)), "..", "prompt.md");
   const MIME = {
     ".html": "text/html; charset=utf-8",
     ".js": "text/javascript; charset=utf-8",
@@ -477,6 +481,34 @@ if (!state?.isValid(url.searchParams.get("state"))) {
               ? `Already set to "${result.cron}" — nothing changed.`
               : `Updated the schedule from "${result.previous}" to "${result.cron}".`,
         });
+      } catch (err) {
+        sendJson(res, 500, { ok: false, error: err.message });
+      }
+    },
+
+    // ── Post prompt ─────────────────────────────────────────────
+    "GET /api/prompt": async (_req, res) => {
+      try {
+        let prompt = null;
+        if (existsSync(resolvedPromptPath)) {
+          prompt = readFileSync(resolvedPromptPath, "utf8");
+        }
+        sendJson(res, 200, { ok: true, prompt, promptPath: resolvedPromptPath });
+      } catch (err) {
+        sendJson(res, 500, { ok: false, error: err.message });
+      }
+    },
+
+    "POST /api/prompt": async (req, res) => {
+      const body = await readBody(req);
+      const prompt = body.prompt;
+      if (typeof prompt !== "string") {
+        sendJson(res, 400, { ok: false, error: "prompt must be a string" });
+        return;
+      }
+      try {
+        writeFileSync(resolvedPromptPath, prompt, "utf8");
+        sendJson(res, 200, { ok: true, promptPath: resolvedPromptPath });
       } catch (err) {
         sendJson(res, 500, { ok: false, error: err.message });
       }

@@ -1,3 +1,6 @@
+import { pathToFileURL, fileURLToPath } from "node:url";
+import { existsSync, readFileSync } from "node:fs";
+import path from "node:path";
 import getSinceDate from "./getSinceDate.js";
 import {
   GIT_HEADERS,
@@ -19,6 +22,33 @@ const DRY_RUN = process.argv.includes("--dry-run");
 // Get previous 24hs date
 const now = new Date(Date.now());
 const since = getSinceDate(24, now);
+
+/** The prompt template used to ask the LLM to write the post. */
+const DEFAULT_PROMPT = `Write a concise LinkedIn post summarizing the following commits from my GitHub repositories. For the github user use {hubUser}.
+Make it professional, readable, and engaging. Use emojis for features and fixes.
+Keep it short and include clickable repo URLs if possible.
+DON'T forget to add a space after every emoji.
+Commits:
+{commits}`;
+
+/**
+ * Resolve the post prompt: an env override wins, then the committed
+ * prompt.md, then the built-in default.
+ */
+function loadPrompt() {
+  if (process.env.LINKEDIN_POST_PROMPT) return process.env.LINKEDIN_POST_PROMPT;
+  const promptPath = path.join(
+    path.dirname(fileURLToPath(import.meta.url)),
+    "..",
+    "prompt.md"
+  );
+  try {
+    if (existsSync(promptPath)) return readFileSync(promptPath, "utf8");
+  } catch {
+    // fall through to the default
+  }
+  return DEFAULT_PROMPT;
+}
 
 // Groq call lives in llm.js so the preflight probe can reuse the same shape.
 
@@ -64,13 +94,9 @@ export default async function run() {
   const commitsText = filteredCommits
     .map((c) => `${c.repo}: ${c.message}`)
     .join("\n");
-  const prompt = `
-    Write a concise LinkedIn post summarizing the following commits from my GitHub repositories. For the github user use ${HUB_USER}.
-    Make it professional, readable, and engaging. Use emojis for features and fixes.
-    Keep it short and include clickable repo URLs if possible.
-    DON'T forget to add a space after every emoji.
-    Commits:
-    ${commitsText}`;
+  const prompt = loadPrompt()
+    .replace("{commits}", commitsText)
+    .replace("{hubUser}", HUB_USER);
 
   const aiSummary = await summarize(prompt);
 

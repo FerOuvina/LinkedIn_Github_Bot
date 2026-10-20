@@ -374,6 +374,62 @@ on:
   });
 });
 
+describe("prompt routes", () => {
+  let dir;
+  let promptPath;
+
+  const DEFAULT_PROMPT = `Write a concise LinkedIn post summarizing the following commits from my GitHub repositories. For the github user use {hubUser}.
+Make it professional, readable, and engaging. Use emojis for features and fixes.
+Keep it short and include clickable repo URLs if possible.
+DON'T forget to add a space after every emoji.
+Commits:
+{commits}`;
+
+  beforeEach(() => {
+    dir = mkdtempSync(path.join(tmpdir(), "prompt-"));
+    promptPath = path.join(dir, "prompt.md");
+    writeFileSync(promptPath, DEFAULT_PROMPT, "utf8");
+  });
+
+  afterEach(() => rmSync(dir, { recursive: true, force: true }));
+
+  it("reads the committed prompt", async () => {
+    const s = await start({ promptPath });
+    const body = await (await s.get("/api/prompt")).json();
+
+    expect(body.ok).toBe(true);
+    expect(body.prompt).toBe(DEFAULT_PROMPT);
+    expect(body.promptPath).toBe(promptPath);
+  });
+
+  it("reports null prompt when the file is missing", async () => {
+    const s = await start({ promptPath: path.join(dir, "absent.md") });
+    const body = await (await s.get("/api/prompt")).json();
+
+    expect(body.ok).toBe(true);
+    expect(body.prompt).toBeNull();
+  });
+
+  it("writes the prompt and persists it", async () => {
+    const s = await start({ promptPath });
+    const newPrompt = "Custom prompt with {commits} and {hubUser}.";
+    const res = await s.post("/api/prompt", { prompt: newPrompt });
+    const body = await res.json();
+
+    expect(res.status).toBe(200);
+    expect(body.ok).toBe(true);
+    expect(readFileSync(promptPath, "utf8")).toBe(newPrompt);
+  });
+
+  it("rejects a non-string prompt", async () => {
+    const s = await start({ promptPath });
+    const res = await s.post("/api/prompt", { prompt: 123 });
+
+    expect(res.status).toBe(400);
+    expect((await res.json()).error).toMatch(/prompt must be a string/);
+  });
+});
+
 describe("listen", () => {
   it("explains a port clash instead of dying silently", async () => {
     const first = createSetupServer({ port: 0 });

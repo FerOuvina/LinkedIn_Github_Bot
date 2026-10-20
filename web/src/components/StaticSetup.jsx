@@ -61,6 +61,12 @@ const STEPS = [
     note: "A cron cannot follow daylight saving, so re-run that step after the clocks change.",
   },
   {
+    title: "Edit the post prompt",
+    body: "Tailor the prompt the LLM uses to write your LinkedIn post. It is stored in `prompt.md` so it is version-controlled and picked up by the scheduled job.",
+    commands: [],
+    note: "Use `{commits}` for the scored commit list and `{hubUser}` for your GitHub username.",
+  },
+  {
     title: "Verify, then try a post",
     body: "Check every credential against its real API, then generate a post without publishing it.",
     commands: ["npm run preflight", "npm start -- --dry-run"],
@@ -104,7 +110,7 @@ export default function StaticSetup() {
           Getting started
         </h1>
         <p className="mt-4 max-w-2xl text-lg text-ash">
-          Seven steps, about ten minutes. Nothing here needs a browser-based
+          Eight steps, about ten minutes. Nothing here needs a browser-based
           setup: run the commands in your terminal and everything works the same
           way.
         </p>

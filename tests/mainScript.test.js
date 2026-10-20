@@ -195,4 +195,22 @@ describe("run()", () => {
 
     await expect(run()).rejects.toThrow(/boom/);
   });
+
+  it("uses the committed prompt template and replaces placeholders", async () => {
+    process.env.HUB_USER = "octocat";
+    const calls = mockFetch(
+      githubHandlers({ alpha: [commit("feat: add auth")] })
+    );
+    const run = await loadRun({ dryRun: true });
+    await run();
+
+    const hfCall = calls.find((c) => c.url.includes("api.groq.com"));
+    const sent = JSON.parse(hfCall.options.body).messages[1].content;
+
+    expect(sent).toContain("Write a concise LinkedIn post");
+    expect(sent).toContain("For the github user use octocat.");
+    expect(sent).toContain("alpha: feat: add auth");
+    expect(sent).not.toContain("{commits}");
+    expect(sent).not.toContain("{hubUser}");
+  });
 });
