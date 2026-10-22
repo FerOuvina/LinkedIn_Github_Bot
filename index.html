@@ -110,6 +110,40 @@
         color: var(--primary);
       }
 
+      .meta {
+        display: flex;
+        align-items: center;
+        gap: 0.6rem;
+      }
+
+      .lang {
+        display: flex;
+        align-items: center;
+        gap: 0.25rem;
+      }
+
+      .lang a {
+        padding: 0.15rem 0.3rem;
+        border: 1px solid var(--edge);
+        color: var(--ash);
+        font-family: "JetBrains Mono", monospace;
+        font-size: 0.55rem;
+        letter-spacing: 0.12em;
+        text-decoration: none;
+        text-transform: uppercase;
+      }
+
+      .lang a:hover {
+        border-color: var(--primary);
+        color: var(--bone);
+      }
+
+      .lang a[aria-current="true"] {
+        border-color: var(--acid);
+        background: var(--acid);
+        color: var(--void);
+      }
+
       .status {
         display: flex;
         align-items: center;
@@ -439,50 +473,144 @@
     <header>
       <div class="wrap bar">
         <a class="brand" href="../">github<span>→</span>linkedin</a>
-        <span class="status"><span class="dot"></span>policy</span>
+        <div class="meta">
+          <nav class="lang" id="lang" aria-label="Language">
+            <a href="?lang=en" data-locale="en" hreflang="en">EN</a>
+            <a href="?lang=es" data-locale="es" hreflang="es">ES</a>
+          </nav>
+          <span class="status"><span class="dot"></span><span data-i18n="status">policy</span></span>
+        </div>
       </div>
     </header>
 
     <div class="ticker" aria-hidden="true">
       <ul>
-        <li>no tracking</li>
-        <li>no accounts</li>
-        <li>runs locally</li>
-        <li>keys stay yours</li>
-        <li>no telemetry</li>
-        <li>open source</li>
-        <li>no tracking</li>
-        <li>no accounts</li>
-        <li>runs locally</li>
-        <li>keys stay yours</li>
-        <li>no telemetry</li>
-        <li>open source</li>
+        <li data-i18n="ticker0">no tracking</li>
+        <li data-i18n="ticker1">no accounts</li>
+        <li data-i18n="ticker2">runs locally</li>
+        <li data-i18n="ticker3">keys stay yours</li>
+        <li data-i18n="ticker4">no telemetry</li>
+        <li data-i18n="ticker5">open source</li>
+        <li data-i18n="ticker0">no tracking</li>
+        <li data-i18n="ticker1">no accounts</li>
+        <li data-i18n="ticker2">runs locally</li>
+        <li data-i18n="ticker3">keys stay yours</li>
+        <li data-i18n="ticker4">no telemetry</li>
+        <li data-i18n="ticker5">open source</li>
       </ul>
     </div>
 
     <main class="wrap">
-      <span class="kicker">legal // read this</span>
-      <h1>Privacy policy</h1>
+      <span class="kicker" data-i18n="kicker">legal // read this</span>
+      <h1 data-i18n="heading">Privacy policy</h1>
 
-      <div id="content" class="loading">loading_policy…</div>
+      <div id="content" class="loading" data-i18n="loading">loading_policy…</div>
 
       <a class="back" href="../">
-        <span aria-hidden="true">←</span> back to the site
+        <span aria-hidden="true">←</span> <span data-i18n="back">back to the site</span>
       </a>
     </main>
 
     <footer>
-      <div class="wrap">no tracking // no accounts // no servers</div>
+      <div class="wrap" data-i18n="footer">no tracking // no accounts // no servers</div>
     </footer>
 
     <script>
-      const candidates = [
-        "privacy-policy.md",
-        "privacy_policy.md",
-        "privacy policy.md",
-        "PrivacyPolicy.md",
-        "privacy.md",
-      ];
+      const TEXT = {
+        en: {
+          title: "privacy // github→linkedin",
+          description: "Privacy policy for the GitHub to LinkedIn bot.",
+          langLabel: "Language",
+          status: "policy",
+          ticker0: "no tracking",
+          ticker1: "no accounts",
+          ticker2: "runs locally",
+          ticker3: "keys stay yours",
+          ticker4: "no telemetry",
+          ticker5: "open source",
+          kicker: "legal // read this",
+          heading: "Privacy policy",
+          loading: "loading_policy…",
+          back: "back to the site",
+          footer: "no tracking // no accounts // no servers",
+          notFound: "No privacy-policy markdown found next to this page.",
+          noRenderer: "Could not load the markdown renderer.",
+        },
+        es: {
+          title: "privacidad // github→linkedin",
+          description: "Política de privacidad del bot de GitHub a LinkedIn.",
+          langLabel: "Idioma",
+          status: "privacidad",
+          ticker0: "sin rastreo",
+          ticker1: "sin cuentas",
+          ticker2: "se ejecuta en local",
+          ticker3: "tus claves son tuyas",
+          ticker4: "sin telemetría",
+          ticker5: "código abierto",
+          kicker: "legal // léelo",
+          heading: "Política de privacidad",
+          loading: "cargando_política…",
+          back: "volver al sitio",
+          footer: "sin rastreo // sin cuentas // sin servidores",
+          notFound: "No se encontró el markdown de la política de privacidad junto a esta página.",
+          noRenderer: "No se pudo cargar el renderizador de markdown.",
+        },
+      };
+
+      const params = new URLSearchParams(window.location.search);
+      const requested = params.get("lang");
+      let stored = null;
+      try {
+        stored = window.localStorage.getItem("locale");
+      } catch (err) {
+        /* storage can be blocked; fall back to the default */
+      }
+
+      const locale =
+        requested === "en" || requested === "es"
+          ? requested
+          : stored === "es"
+            ? "es"
+            : "en";
+
+      if (requested === "en" || requested === "es") {
+        try {
+          window.localStorage.setItem("locale", requested);
+        } catch (err) {
+          /* the page still switches for this load */
+        }
+      }
+
+      const t = TEXT[locale];
+
+      document.documentElement.lang = locale;
+      document.title = t.title;
+      const description = document.querySelector('meta[name="description"]');
+      if (description) description.setAttribute("content", t.description);
+
+      document.querySelectorAll("[data-i18n]").forEach((el) => {
+        const value = t[el.dataset.i18n];
+        if (value) el.textContent = value;
+      });
+
+      document.querySelectorAll("[data-locale]").forEach((el) => {
+        if (el.dataset.locale === locale) el.setAttribute("aria-current", "true");
+        else el.removeAttribute("aria-current");
+      });
+
+      const langEl = document.getElementById("lang");
+      if (langEl) langEl.setAttribute("aria-label", t.langLabel);
+
+      const candidates =
+        locale === "es"
+          ? ["privacy-policy.es.md", "privacy-policy.md"]
+          : [
+              "privacy-policy.md",
+              "privacy_policy.md",
+              "privacy policy.md",
+              "PrivacyPolicy.md",
+              "privacy.md",
+            ];
 
       const contentEl = document.getElementById("content");
 
@@ -513,8 +641,10 @@
         }
 
         contentEl.className = "";
-        contentEl.innerHTML =
-          '<div class="back">No privacy-policy markdown found next to this page.</div>';
+        const missing = document.createElement("div");
+        missing.className = "back";
+        missing.textContent = t.notFound;
+        contentEl.replaceChildren(missing);
       }
 
       function loadScript(src) {
@@ -542,8 +672,10 @@
           await attemptLoad();
         } catch (err) {
           contentEl.className = "";
-          contentEl.innerHTML =
-            '<div class="back">Could not load the markdown renderer.</div>';
+          const failed = document.createElement("div");
+          failed.className = "back";
+          failed.textContent = t.noRenderer;
+          contentEl.replaceChildren(failed);
         }
       })();
     </script>

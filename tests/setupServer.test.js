@@ -752,6 +752,50 @@ describe("static serving", () => {
     }
   });
 
+  it("serves the standalone privacy page instead of the app shell", async () => {
+    const s = await start({ webDir: dir });
+    const res = await s.get(`${WEB_BASE}privacy-policy/`);
+
+    expect(res.status).toBe(200);
+    expect(res.headers.get("content-type")).toContain("text/html");
+
+    const html = await res.text();
+    expect(html).toContain("Privacy policy");
+    expect(html).not.toContain("wizard");
+  });
+
+  it("redirects the bare privacy path to a trailing slash", async () => {
+    const s = await start({ webDir: dir });
+    const res = await s.get(`${WEB_BASE}privacy-policy`, { redirect: "manual" });
+
+    expect(res.status).toBe(302);
+    expect(res.headers.get("location")).toBe(`${WEB_BASE}privacy-policy/`);
+  });
+
+  it("serves both privacy markdown files", async () => {
+    const s = await start({ webDir: dir });
+    const cases = [
+      ["privacy-policy.md", "Privacy Policy"],
+      ["privacy-policy.es.md", "Política de privacidad"],
+    ];
+
+    for (const [file, heading] of cases) {
+      const res = await s.get(`${WEB_BASE}privacy-policy/${file}`);
+
+      expect(res.status).toBe(200);
+      expect(res.headers.get("content-type")).toContain("text/markdown");
+      expect(await res.text()).toContain(heading);
+    }
+  });
+
+  it("404s an unknown privacy file instead of returning the app shell", async () => {
+    const s = await start({ webDir: dir });
+    const res = await s.get(`${WEB_BASE}privacy-policy/missing.md`);
+
+    expect(res.status).toBe(404);
+    expect(await res.text()).not.toContain("wizard");
+  });
+
   it("404s a missing asset rather than silently returning HTML", async () => {
     const s = await start({ webDir: dir });
     const res = await s.get("/assets/gone.js");

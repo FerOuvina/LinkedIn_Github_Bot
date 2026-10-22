@@ -1,52 +1,58 @@
 import { useSetup } from "../../context/SetupContext.jsx";
+import { useLingui } from "@lingui/react";
+import { Trans } from "@lingui/react/macro";
+import { msg } from "@lingui/core/macro";
 
 const FIELDS = [
   {
     name: "HUB_USER",
-    label: "GitHub username",
+    label: msg`GitHub username`,
     placeholder: "your-username",
-    help: "The account whose commits should be turned into posts.",
+    help: msg`The account whose commits should be turned into posts.`,
   },
   {
     name: "GITHUB_TOKEN",
-    label: "GitHub token",
+    label: msg`GitHub token`,
     type: "password",
-    placeholder: "github_pat_…",
-    help: "Read access to your public repositories.",
+    placeholder: "github_pat_.",
+    help: msg`Read access to your public repositories.`,
     link: "https://github.com/settings/tokens",
   },
   {
     name: "GROQ_API_KEY",
-    label: "Groq API key",
+    label: msg`Groq API key`,
     type: "password",
-    placeholder: "gsk_…",
-    help: "Used to generate the post text.",
+    placeholder: "gsk_.",
+    help: msg`Used to generate the post text.`,
     link: "https://console.groq.com/keys",
   },
   {
     name: "GROQ_MODEL",
-    label: "Model (optional)",
+    label: msg`Model (optional)`,
     placeholder: "qwen/qwen3.8-27b",
-    help: "Leave blank to use the default. Must be a chat model.",
+    help: msg`Leave blank to use the default. Must be a chat model.`,
   },
 ];
 
 export default function StepCredentials() {
   const { values, setValue } = useSetup();
+  const { _ } = useLingui();
 
   return (
     <section>
       <p className="mb-8 max-w-2xl text-lg text-ash">
-        These stay in the setup server's memory until you save them. Nothing is
-        sent anywhere until the next step, and nothing is written until you
-        confirm it.
+        <Trans>
+          These stay in the setup server's memory until you save them. Nothing is
+          sent anywhere until the next step, and nothing is written until you
+          confirm it.
+        </Trans>
       </p>
 
       <div className="grid max-w-2xl gap-6">
         {FIELDS.map((field) => (
           <div key={field.name} className="flex flex-col gap-2">
             <label className="ff-mono text-[11px] uppercase tracking-[0.2em] text-bone">
-              {field.label}
+              {_(field.label)}
             </label>
             {field.type === "select" ? (
               <select
@@ -70,7 +76,7 @@ export default function StepCredentials() {
               />
             )}
             <p className="text-sm text-ash">
-              {field.help}{" "}
+              {_(field.help)}{" "}
               {field.link && (
                 <a
                   className="text-primary underline decoration-2 underline-offset-4 hover:text-cyan"
@@ -78,7 +84,7 @@ export default function StepCredentials() {
                   target="_blank"
                   rel="noreferrer"
                 >
-                  Get one
+                  <Trans>Get one</Trans>
                 </a>
               )}
             </p>

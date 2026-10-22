@@ -1,24 +1,28 @@
 import { useEffect, useState } from "react";
 import { api } from "../../lib/api.js";
+import { useLingui } from "@lingui/react";
+import { Trans } from "@lingui/react/macro";
+import { msg } from "@lingui/core/macro";
 
 /** Placeholders the wizard fills in when the post is generated. */
 const PLACEHOLDERS = [
-  { name: "{commits}", description: "replaced with the scored commit list" },
-  { name: "{hubUser}", description: "replaced with your GitHub username" },
+  { name: "{commits}", description: msg`replaced with the scored commit list` },
+  { name: "{hubUser}", description: msg`replaced with your GitHub username` },
 ];
 
 /** Languages the bot can write. Each selected one becomes a separate post. */
 const LANGUAGES = [
-  { code: "en", label: "English" },
-  { code: "es", label: "Spanish" },
-  { code: "pt", label: "Portuguese" },
-  { code: "fr", label: "French" },
+  { code: "en", label: msg`English` },
+  { code: "es", label: msg`Spanish` },
+  { code: "pt", label: msg`Portuguese` },
+  { code: "fr", label: msg`French` },
 ];
 
 /** At most two languages are posted per setup. */
 const MAX_LANGUAGES = 2;
 
 export default function StepPrompt() {
+  const { _ } = useLingui();
   const [prompt, setPrompt] = useState("");
   const [languages, setLanguages] = useState(["en"]);
   const [busy, setBusy] = useState(false);
@@ -63,15 +67,17 @@ export default function StepPrompt() {
   return (
     <section>
       <p className="mb-6 max-w-2xl text-lg text-ash">
-        Edit the prompt the bot sends to the LLM to turn your commits into a
-        LinkedIn post. It is stored in the repo as{" "}
-        <code className="font-mono text-primary">prompt.md</code>, so it is
-        version-controlled and picked up by the scheduled job automatically.
+        <Trans>
+          Edit the prompt the bot sends to the LLM to turn your commits into a
+          LinkedIn post. It is stored in the repo as{" "}
+          <code className="font-mono text-primary">prompt.md</code>, so it is
+          version-controlled and picked up by the scheduled job automatically.
+        </Trans>
       </p>
 
       <div className="mb-6 max-w-2xl">
         <span className="ff-mono mb-2 block text-[11px] uppercase tracking-[0.2em] text-bone">
-          Post languages
+          <Trans>Post languages</Trans>
         </span>
         <div className="flex flex-wrap gap-4">
           {LANGUAGES.map((language) => {
@@ -91,20 +97,22 @@ export default function StepPrompt() {
                   onChange={() => toggleLanguage(language.code)}
                   className="size-4 accent-primary"
                 />
-                {language.label}
+                {_(language.label)}
               </label>
             );
           })}
         </div>
         <p className="mt-2 text-xs text-ash">
-          One post per language, up to two. Keep at least one checked; choose
-          each language's time in the next step.
+          <Trans>
+            One post per language, up to two. Keep at least one checked; choose
+            each language's time in the next step.
+          </Trans>
         </p>
       </div>
 
       <div className="mb-6 max-w-2xl">
         <label className="ff-mono mb-2 block text-[11px] uppercase tracking-[0.2em] text-bone">
-          Post prompt template
+          <Trans>Post prompt template</Trans>
         </label>
         <textarea
           value={prompt}
@@ -114,27 +122,31 @@ export default function StepPrompt() {
           spellCheck={false}
         />
         <p className="mt-2 text-xs text-ash">
-          Use <span className="font-mono">{PLACEHOLDERS.map((p) => p.name).join(", ")}</span> as
-          placeholders — they are filled in automatically when the post is
-          generated.
+          <Trans>
+            Use <span className="font-mono">{PLACEHOLDERS.map((p) => p.name).join(", ")}</span> as
+            placeholders - they are filled in automatically when the post is
+            generated.
+          </Trans>
         </p>
         <ul className="mt-1 space-y-1 text-xs text-ash">
           {PLACEHOLDERS.map((p) => (
             <li key={p.name}>
-              <span className="font-mono">{p.name}</span>{" — "}
-              {p.description}
+              <span className="font-mono">{p.name}</span>{" - "}
+              {_(p.description)}
             </li>
           ))}
           <li>
-            Commits are scored before they reach this prompt —{" "}
-            <span className="font-mono">feat:+5</span>,{" "}
-            <span className="font-mono">fix:+4</span>,{" "}
-            <span className="font-mono">add/implement/support:+2</span>,
-            <span className="font-mono">test:-1</span>,{" "}
-            <span className="font-mono">chore/merge:-2</span>. Only commits
-            scoring 1+ are included, so write the prompt assuming the list is
-            already scored. See{" "}
-            <span className="font-mono">scripts/commitScoring.js</span>.
+            <Trans>
+              Commits are scored before they reach this prompt -{" "}
+              <span className="font-mono">feat:+5</span>,{" "}
+              <span className="font-mono">fix:+4</span>,{" "}
+              <span className="font-mono">add/implement/support:+2</span>,
+              <span className="font-mono">test:-1</span>,{" "}
+              <span className="font-mono">chore/merge:-2</span>. Only commits
+              scoring 1+ are included, so write the prompt assuming the list is
+              already scored. See{" "}
+              <span className="font-mono">scripts/commitScoring.js</span>.
+            </Trans>
           </li>
         </ul>
       </div>
@@ -147,17 +159,19 @@ export default function StepPrompt() {
           disabled={busy}
           className="btn btn-acid"
         >
-          {busy ? "Working…" : "Save prompt"}
+          {busy ? <Trans>Working…</Trans> : <Trans>Save prompt</Trans>}
         </button>
       </div>
 
       {saved && (
         <div className="panel mb-6 border-acid p-4 text-acid">
-          Prompt saved to{" "}
-          <code className="font-mono text-primary">prompt.md</code> and settings
-          to <code className="font-mono text-primary">post.config.json</code>{" "}
-          — commit and push both files for the scheduled job to use them. If
-          you changed the language list, the workflow schedule was updated too.
+          <Trans>
+            Prompt saved to{" "}
+            <code className="font-mono text-primary">prompt.md</code> and settings
+            to <code className="font-mono text-primary">post.config.json</code>{" "}
+            - commit and push both files for the scheduled job to use them. If
+            you changed the language list, the workflow schedule was updated too.
+          </Trans>
         </div>
       )}
     </section>

@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { api } from "../../lib/api.js";
+import { Trans } from "@lingui/react/macro";
 
 export default function StepVerify() {
   const [health, setHealth] = useState(null);
@@ -52,8 +53,10 @@ export default function StepVerify() {
   return (
     <section>
       <p className="mb-6 max-w-2xl text-lg text-ash">
-        Checks every credential against its real API, so problems show up here
-        rather than tomorrow morning.
+        <Trans>
+          Checks every credential against its real API, so problems show up here
+          rather than tomorrow morning.
+        </Trans>
       </p>
 
       <div className="flex flex-wrap gap-3 mb-8">
@@ -62,14 +65,14 @@ export default function StepVerify() {
           disabled={busy}
           className="btn btn-primary"
         >
-          Check credentials
+          <Trans>Check credentials</Trans>
         </button>
         <button
           onClick={tryPost}
           disabled={busy}
           className="btn btn-ghost"
         >
-          Generate a test post
+          <Trans>Generate a test post</Trans>
         </button>
       </div>
 
@@ -86,7 +89,11 @@ export default function StepVerify() {
       {post && (
         <div>
           <p className="ff-kicker mb-3">
-            {post.ok ? "Test post (nothing was published)" : "Test run failed"}
+            {post.ok ? (
+              <Trans>Test post (nothing was published)</Trans>
+            ) : (
+              <Trans>Test run failed</Trans>
+            )}
           </p>
           <pre className="overflow-x-auto whitespace-pre-wrap border-2 border-edge bg-void p-4 font-mono text-[13px] leading-relaxed text-bone">
             {post.ok ? post.stdout : post.stderr || post.stdout}
