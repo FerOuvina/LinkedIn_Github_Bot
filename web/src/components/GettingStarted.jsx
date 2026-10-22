@@ -8,20 +8,26 @@ import StepSave from "./steps/StepSave";
 import StepSchedule from "./steps/StepSchedule";
 import StepPrompt from "./steps/StepPrompt";
 import StepVerify from "./steps/StepVerify";
+import LanguageSwitcher from "./LanguageSwitcher.jsx";
+import { useLingui } from "@lingui/react";
+import { Trans } from "@lingui/react/macro";
+import { msg } from "@lingui/core/macro";
+
+// Every step must have a component: an undefined one crashes the wizard.
+const STEPS = [
+  { id: 1, title: msg`Check your machine`, sidebar: msg`Prerequisites`, component: StepPrerequisites },
+  { id: 2, title: msg`Clone and start`, sidebar: msg`Clone Repository`, component: StepCloneRepo },
+  { id: 3, title: msg`API credentials`, sidebar: msg`API Credentials`, component: StepCredentials },
+  { id: 4, title: msg`Connect LinkedIn`, sidebar: msg`Connect LinkedIn`, component: StepLinkedIn },
+  { id: 5, title: msg`Save credentials`, sidebar: msg`Save Credentials`, component: StepSave },
+  { id: 6, title: msg`Edit the prompt`, sidebar: msg`Edit Prompt`, component: StepPrompt },
+  { id: 7, title: msg`Choose your times`, sidebar: msg`Post Schedule`, component: StepSchedule },
+  { id: 8, title: msg`Verify`, sidebar: msg`Verify & Test`, component: StepVerify },
+];
 
 function GettingStarted() {
-  // Every step must have a component: an undefined one crashes the wizard.
-  const steps = [
-    { id: 1, title: "Check your machine", sidebar: "Prerequisites", component: StepPrerequisites },
-    { id: 2, title: "Clone and start", sidebar: "Clone Repository", component: StepCloneRepo },
-    { id: 3, title: "API credentials", sidebar: "API Credentials", component: StepCredentials },
-    { id: 4, title: "Connect LinkedIn", sidebar: "Connect LinkedIn", component: StepLinkedIn },
-    { id: 5, title: "Save credentials", sidebar: "Save Credentials", component: StepSave },
-    { id: 6, title: "Edit the prompt", sidebar: "Edit Prompt", component: StepPrompt },
-    { id: 7, title: "Choose your times", sidebar: "Post Schedule", component: StepSchedule },
-    { id: 8, title: "Verify", sidebar: "Verify & Test", component: StepVerify },
-  ];
-
+  const steps = STEPS;
+  const { _ } = useLingui();
   const [currentStep, setCurrentStep] = useState(0);
   const [toast, setToast] = useState(false);
   const totalSteps = steps.length;
@@ -50,6 +56,7 @@ function GettingStarted() {
               <p className="ff-mono mt-1 text-[10px] text-ash">github→linkedin</p>
             </div>
           </div>
+          <LanguageSwitcher className="mt-4 w-fit" />
         </div>
 
         <nav className="flex-1 space-y-1 px-3 py-3">
@@ -88,7 +95,7 @@ function GettingStarted() {
                     isActive ? "text-bone" : "text-ash"
                   }`}
                 >
-                  {String(s.id).padStart(2, "0")} {s.sidebar}
+                  {String(s.id).padStart(2, "0")} {_(s.sidebar)}
                 </span>
               </button>
             );
@@ -100,7 +107,7 @@ function GettingStarted() {
             <span className="material-symbols-outlined text-[18px]">
               arrow_back
             </span>
-            exit
+            <Trans>exit</Trans>
           </Link>
         </div>
       </aside>
@@ -112,7 +119,7 @@ function GettingStarted() {
             <div className="mb-10 flex flex-col gap-3">
               <div className="flex items-end justify-between">
                 <span className="ff-kicker">
-                  step {String(currentStep + 1).padStart(2, "0")} / {totalSteps}
+                  <Trans>step {String(currentStep + 1).padStart(2, "0")} / {totalSteps}</Trans>
                 </span>
                 <span className="ff-mono text-[11px] text-cyan">
                   {progress}%
@@ -128,7 +135,7 @@ function GettingStarted() {
             </div>
 
             <h2 className="ff-display mb-8 text-3xl text-bone sm:text-4xl">
-              {step.title}
+              {_(step.title)}
             </h2>
 
             <div className="max-w-2xl text-lg text-ash">
@@ -146,7 +153,7 @@ function GettingStarted() {
             <span className="material-symbols-outlined text-[18px]">
               arrow_back
             </span>
-            prev
+            <Trans>prev</Trans>
           </button>
 
           {isLastStep ? (
@@ -155,7 +162,7 @@ function GettingStarted() {
               disabled={toast}
               className="btn btn-acid"
             >
-              {toast ? "done" : "finish"}
+              {toast ? <Trans>done</Trans> : <Trans>finish</Trans>}
               <span className="material-symbols-outlined text-[18px]">
                 check_circle
               </span>
@@ -165,7 +172,7 @@ function GettingStarted() {
               onClick={() => setCurrentStep((s) => Math.min(totalSteps - 1, s + 1))}
               className="btn btn-primary"
             >
-              next
+              <Trans>next</Trans>
               <span className="material-symbols-outlined text-[18px]">
                 arrow_forward
               </span>
@@ -185,16 +192,18 @@ function GettingStarted() {
               </span>
               <div className="flex-1">
                 <p className="ff-mono text-[10px] uppercase tracking-[0.3em] text-acid">
-                  setup complete
+                  <Trans>setup complete</Trans>
                 </p>
                 <p className="mt-1 text-sm text-bone">
-                  Everything is configured. Your next scheduled post will pick
-                  it up.
+                  <Trans>
+                    Everything is configured. Your next scheduled post will pick
+                    it up.
+                  </Trans>
                 </p>
               </div>
               <button
                 onClick={() => setToast(false)}
-                aria-label="Dismiss notification"
+                aria-label={_(msg`Dismiss notification`)}
                 className="font-mono text-lg leading-none text-ash transition hover:text-bone"
               >
                 ×

@@ -1,9 +1,13 @@
 import { useState } from "react";
 import { useSetup } from "../../context/SetupContext.jsx";
 import { api } from "../../lib/api.js";
+import { useLingui } from "@lingui/react";
+import { Trans } from "@lingui/react/macro";
+import { msg } from "@lingui/core/macro";
 
 export default function StepSave() {
   const { values, linkedIn, targets, setTarget } = useSetup();
+  const { _ } = useLingui();
   const [busy, setBusy] = useState(false);
   const [result, setResult] = useState(null);
   const [error, setError] = useState("");
@@ -49,22 +53,24 @@ export default function StepSave() {
   return (
     <section>
       <p className="mb-6 max-w-2xl text-lg text-ash">
-        Choose where to save. Preview first — nothing is written until you
-        confirm.
+        <Trans>
+          Choose where to save. Preview first - nothing is written until you
+          confirm.
+        </Trans>
       </p>
 
       <div className="mb-8 grid max-w-2xl gap-4">
         {checkbox(
           targets.github,
           (v) => setTarget("github", v),
-          "Save as GitHub Actions secrets",
-          "Needed for the scheduled daily post. Uses the GitHub CLI on your machine."
+          _(msg`Save as GitHub Actions secrets`),
+          _(msg`Needed for the scheduled daily post. Uses the GitHub CLI on your machine.`)
         )}
         {checkbox(
           targets.env,
           (v) => setTarget("env", v),
-          "Save to the local .env file",
-          "Keeps `npm start` and `npm run preflight` working here. Existing values are preserved."
+          _(msg`Save to the local .env file`),
+          _(msg`Keeps \`npm start\` and \`npm run preflight\` working here. Existing values are preserved.`)
         )}
       </div>
 
@@ -74,18 +80,22 @@ export default function StepSave() {
           disabled={busy}
           className="btn btn-ghost"
         >
-          Preview
+          <Trans>Preview</Trans>
         </button>
         <button
           onClick={() => save(true)}
           disabled={busy}
           className="btn btn-acid"
         >
-          Save credentials
+          <Trans>Save credentials</Trans>
         </button>
       </div>
 
-      {busy && <p className="mt-4 font-mono text-[11px] text-ash">Working…</p>}
+            {busy && (
+        <p className="mt-4 font-mono text-[11px] text-ash">
+          <Trans>Working…</Trans>
+        </p>
+      )}
 
       {error && (
         <div className="panel mt-6 whitespace-pre-line border-crimson p-4 text-crimson">
@@ -104,7 +114,7 @@ export default function StepSave() {
           {result.message}
           {result.envUpdated?.length > 0 && (
             <p className="mt-2 font-mono text-[11px] text-ash">
-              Updated in .env: {result.envUpdated.join(", ")}
+              <Trans>Updated in .env: {result.envUpdated.join(", ")}</Trans>
             </p>
           )}
         </div>

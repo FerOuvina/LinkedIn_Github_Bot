@@ -1,5 +1,6 @@
 import { lazy, Suspense } from "react";
 import { Route, Router } from "wouter";
+import { Trans } from "@lingui/react/macro";
 
 import Home from "./components/Home.jsx";
 import GettingStarted from "./components/GettingStarted.jsx";
@@ -28,7 +29,9 @@ function SetupRoute() {
 function Loading() {
   return (
     <div className="grid-bg flex min-h-screen items-center justify-center bg-void">
-      <p className="ff-kicker animate-blink">loading…</p>
+      <p className="ff-kicker animate-blink">
+        <Trans>loading…</Trans>
+      </p>
     </div>
   );
 }

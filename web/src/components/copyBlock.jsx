@@ -1,6 +1,10 @@
 import { useState } from "react";
+import { useLingui } from "@lingui/react";
+import { Trans } from "@lingui/react/macro";
+import { msg } from "@lingui/core/macro";
 
 export default function CopyBlock({ code, language = "bash", output }) {
+  const { _ } = useLingui();
   const [copied, setCopied] = useState(false);
 
   const handleCopy = async () => {
@@ -32,9 +36,9 @@ export default function CopyBlock({ code, language = "bash", output }) {
         <button
           onClick={handleCopy}
           className="ff-mono shrink-0 border border-edge px-2 py-1 text-[10px] text-ash transition hover:border-primary hover:text-primary"
-          aria-label="Copy to clipboard"
+          aria-label={_(msg`Copy to clipboard`)}
         >
-          {copied ? "COPIED" : "COPY"}
+          {copied ? <Trans>COPIED</Trans> : <Trans>COPY</Trans>}
         </button>
       </div>
 

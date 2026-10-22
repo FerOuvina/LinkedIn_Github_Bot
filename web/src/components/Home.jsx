@@ -1,84 +1,93 @@
 import { Link } from "wouter";
+import { useLingui } from "@lingui/react";
+import { Trans } from "@lingui/react/macro";
+import { msg } from "@lingui/core/macro";
 import { sitePath } from "../lib/api.js";
+import LanguageSwitcher from "./LanguageSwitcher.jsx";
+
+const COMMITS_IN = msg`commits in`;
+const POSTS_OUT = msg`posts out`;
 
 const TICKER = [
-  "commits in",
-  "posts out",
-  "no copy-paste",
-  "runs daily",
-  "open source",
-  "your keys stay yours",
-  "runs on your schedule",
+  COMMITS_IN,
+  POSTS_OUT,
+  msg`no copy-paste`,
+  msg`runs daily`,
+  msg`open source`,
+  msg`your keys stay yours`,
+  msg`runs on your schedule`,
 ];
 
 const REPO = "https://github.com/FerOuvina/LinkedIn_Github_Bot";
 
 const CARDS = [
   {
-    kicker: "01 / pipeline",
-    title: "How it works",
+    kicker: msg`01 / pipeline`,
+    title: msg`How it works`,
     icon: "hub",
     items: [
-      ["history", "Scans your repos for the last 24 hours of commits"],
-      ["filter_alt", "Drops changelogs, merges and chore noise"],
-      ["auto_awesome", "Turns what is left into a post with an LLM"],
-      ["send", "Publishes to LinkedIn on a schedule"],
+      ["history", msg`Scans your repos for the last 24 hours of commits`],
+      ["filter_alt", msg`Drops changelogs, merges and chore noise`],
+      ["auto_awesome", msg`Turns what is left into a post with an LLM`],
+      ["send", msg`Publishes to LinkedIn on a schedule`],
     ],
   },
   {
-    kicker: "02 / privacy",
-    title: "Your data, your control",
+    kicker: msg`02 / privacy`,
+    title: msg`Your data, your control`,
     icon: "shield",
     items: [
-      ["dns", "Runs on your machine, not on a server"],
-      ["key", "Tokens go straight to the APIs, nowhere else"],
-      ["visibility", "Credentials live in .env or GitHub secrets"],
-      ["block", "No accounts, no tracking, no telemetry"],
+      ["dns", msg`Runs on your machine, not on a server`],
+      ["key", msg`Tokens go straight to the APIs, nowhere else`],
+      ["visibility", msg`Credentials live in .env or GitHub secrets`],
+      ["block", msg`No accounts, no tracking, no telemetry`],
     ],
   },
   {
-    kicker: "03 / who",
-    title: "Who it's for",
+    kicker: msg`03 / who`,
+    title: msg`Who it's for`,
     icon: "groups",
     items: [
-      ["code", "Developers shipping things quietly"],
-      ["commit", "Open source maintainers"],
-      ["record_voice_over", "Developer advocates building a profile"],
-      ["person", "Anyone tired of writing updates by hand"],
+      ["code", msg`Developers shipping things quietly`],
+      ["commit", msg`Open source maintainers`],
+      ["record_voice_over", msg`Developer advocates building a profile`],
+      ["person", msg`Anyone tired of writing updates by hand`],
     ],
   },
   {
-    kicker: "04 / notes",
-    title: "Good to know",
+    kicker: msg`04 / notes`,
+    title: msg`Good to know`,
     icon: "warning",
     items: [
-      ["key_vertical", "You bring your own API keys"],
-      ["schedule", "LinkedIn tokens expire about every 60 days"],
-      ["toll", "Groq models have rate limits"],
-      ["deployed_code", "This site is the docs, not the bot"],
+      ["key_vertical", msg`You bring your own API keys`],
+      ["schedule", msg`LinkedIn tokens expire about every 60 days`],
+      ["toll", msg`Groq models have rate limits`],
+      ["deployed_code", msg`This site is the docs, not the bot`],
     ],
   },
 ];
 
 function Card({ kicker, title, icon, items }) {
+  const { _ } = useLingui();
+
   return (
     <div className="card">
       <div className="mb-5 flex items-start justify-between">
         <span className="material-symbols-outlined text-[28px] text-primary">
           {icon}
         </span>
-        <span className="ff-kicker">{kicker}</span>
+        <span className="ff-kicker">{_(kicker)}</span>
       </div>
 
-      <h3 className="ff-display mb-5 text-xl text-bone">{title}</h3>
+      <h3 className="ff-display mb-5 text-xl text-bone">{_(title)}</h3>
 
       <ul className="space-y-3">
         {items.map(([itemIcon, label]) => (
-          <li key={label} className="flex items-start gap-3 text-sm text-ash">
+          <li key={label.id} className="flex items-start gap-3 text-sm text-ash">
             <span className="material-symbols-outlined text-[18px] text-cyan">
               {itemIcon}
             </span>
-            <span>{label}</span>
+            <span>{_(label)}</span>
           </li>
         ))}
       </ul>
@@ -87,11 +96,13 @@ function Card({ kicker, title, icon, items }) {
 }
 
 export default function Home() {
+  const { _ } = useLingui();
+
   return (
     <div className="scanlines grid-bg min-h-screen bg-void font-body text-bone">
       {/* ── Header ─────────────────────────────────────────────── */}
       <header className="sticky top-0 z-50 border-b-2 border-edge bg-void/90 backdrop-blur-md">
-        <div className="mx-auto flex h-16 max-w-7xl items-center justify-between px-4 sm:px-6 lg:px-8">
+        <div className="mx-auto flex min-h-16 max-w-7xl flex-wrap items-center justify-between gap-2 px-4 py-2 sm:px-6 lg:px-8">
           <a
             href={REPO}
             target="_blank"
@@ -107,6 +118,7 @@ export default function Home() {
           </a>
 
           <div className="flex items-center gap-3">
+            <LanguageSwitcher />
             <a
               href={REPO}
               target="_blank"
@@ -114,10 +126,10 @@ export default function Home() {
               className="btn btn-ghost hidden px-4 py-2 sm:inline-flex"
             >
               <span className="material-symbols-outlined text-[18px]">code</span>
-              source
+              <Trans>source</Trans>
             </a>
             <Link href="/getting-started" className="btn btn-primary px-4 py-2">
-              get started
+              <Trans>get started</Trans>
             </Link>
           </div>
         </div>
@@ -128,11 +140,11 @@ export default function Home() {
         <div className="flex w-max animate-marquee will-change-transform">
           {[...TICKER, ...TICKER].map((item, i) => (
             <span
-              key={`${item}-${i}`}
+              key={`${item.id}-${i}`}
               className="ff-mono flex items-center whitespace-nowrap px-4 text-[10px] text-void sm:px-6 sm:text-[11px]"
             >
-              {item}
-              <span className="ml-4 text-void/50 sm:ml-6">◆</span>
+              {_(item)}
+              <span className="ml-4 text-void/50 sm:ml-6">→</span>
             </span>
           ))}
         </div>
@@ -149,30 +161,32 @@ export default function Home() {
           <h1 className="ff-display max-w-5xl text-5xl sm:text-7xl lg:text-8xl">
             <span
               className="glitch"
-              data-text="commits in"
+              data-text={_(COMMITS_IN)}
               tabIndex={0}
             >
-              commits in
+              {_(COMMITS_IN)}
             </span>
             <br />
             <span
               className="glitch text-primary"
-              data-text="posts out"
+              data-text={_(POSTS_OUT)}
               tabIndex={0}
             >
-              posts out
+              {_(POSTS_OUT)}
             </span>
           </h1>
 
           <p className="max-w-2xl text-lg text-ash">
-            Your GitHub activity becomes a LinkedIn post every day, without you
-            writing a single update. Open source, runs on your machine, keys stay
-            yours.
+            <Trans>
+              Your GitHub activity becomes a LinkedIn post every day, without
+              you writing a single update. Open source, runs on your machine,
+              keys stay yours.
+            </Trans>
           </p>
 
           <div className="flex flex-wrap justify-center gap-4">
             <Link href="/getting-started" className="btn btn-primary">
-              start building
+              <Trans>start building</Trans>
               <span className="material-symbols-outlined text-[18px]">
                 arrow_forward
               </span>
@@ -184,19 +198,19 @@ export default function Home() {
               className="btn btn-ghost"
             >
               <span className="material-symbols-outlined text-[18px]">code</span>
-              view source
+              <Trans>view source</Trans>
             </a>
           </div>
 
           <div className="grid w-full max-w-2xl grid-cols-3 gap-px border-2 border-edge bg-edge">
             {[
-              ["8", "steps to set up"],
-              ["0", "manual updates"],
-              ["~2", "min per renewal"],
+              ["8", msg`steps to set up`],
+              ["0", msg`manual updates`],
+              ["~2", msg`min per renewal`],
             ].map(([value, label]) => (
-              <div key={label} className="bg-panel px-4 py-6">
+              <div key={label.id} className="bg-panel px-4 py-6">
                 <p className="ff-display text-3xl text-primary">{value}</p>
-                <p className="ff-mono mt-1 text-[10px] text-ash">{label}</p>
+                <p className="ff-mono mt-1 text-[10px] text-ash">{_(label)}</p>
               </div>
             ))}
           </div>
@@ -207,7 +221,7 @@ export default function Home() {
         {/* ── Cards ────────────────────────────────────────────── */}
         <section className="grid grid-cols-1 gap-6 py-16 md:grid-cols-2">
           {CARDS.map((card) => (
-            <Card key={card.title} {...card} />
+            <Card key={card.kicker.id} {...card} />
           ))}
         </section>
 
@@ -215,17 +229,21 @@ export default function Home() {
         <section className="relative mb-20 overflow-hidden border-2 border-primary bg-panel px-6 py-16 text-center shadow-hard sm:px-12">
           <div className="absolute inset-0 grid-bg opacity-40" />
           <div className="relative flex flex-col items-center gap-6">
-            <span className="ff-kicker">ready when you are</span>
+            <span className="ff-kicker">
+              <Trans>ready when you are</Trans>
+            </span>
             <h2 className="ff-display max-w-3xl text-4xl sm:text-5xl lg:text-6xl">
-              stop writing updates
+              <Trans>stop writing updates</Trans>
             </h2>
             <p className="max-w-xl text-ash">
-              Clone it, run one command, and let the commits do the talking.
+              <Trans>
+                Clone it, run one command, and let the commits do the talking.
+              </Trans>
             </p>
 
             <div className="mt-2 flex w-full flex-col items-center gap-4 sm:flex-row sm:justify-center">
               <Link href="/getting-started" className="btn btn-acid w-full sm:w-auto">
-                get started
+                <Trans>get started</Trans>
               </Link>
               <a
                 href={REPO}
@@ -234,7 +252,7 @@ export default function Home() {
                 className="btn btn-ghost w-full sm:w-auto"
               >
                 <span className="material-symbols-outlined text-[18px]">code</span>
-                github
+                <Trans>github</Trans>
               </a>
             </div>
           </div>
@@ -258,7 +276,7 @@ export default function Home() {
 
           <div className="flex gap-6 text-xs">
             <a href={sitePath("/privacy-policy/")} className="ff-mono hover:text-primary">
-              privacy
+              <Trans>privacy</Trans>
             </a>
             <a
               href={`${REPO}/blob/main/LICENSE`}
@@ -266,10 +284,10 @@ export default function Home() {
               rel="noreferrer"
               className="ff-mono hover:text-primary"
             >
-              terms
+              <Trans>terms</Trans>
             </a>
             <Link href="/guide" className="ff-mono hover:text-primary">
-              docs
+              <Trans>docs</Trans>
             </Link>
           </div>
 

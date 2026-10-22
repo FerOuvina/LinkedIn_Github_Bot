@@ -1,0 +1,866 @@
+msgid ""
+msgstr ""
+"POT-Creation-Date: 2026-10-20 18:15-0300\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=utf-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"X-Generator: @lingui/cli\n"
+"Language: en\n"
+
+#: src/components/steps/StepSchedule.jsx
+msgid " — that matches what you picked."
+msgstr " — that matches what you picked."
+
+#: src/components/steps/StepPrerequisites.jsx
+msgid "{missing} environment variable(s) not set"
+msgstr "{missing} environment variable(s) not set"
+
+#: src/components/steps/StepCloneRepo.jsx
+msgid "# Clone the repository"
+msgstr "# Clone the repository"
+
+#: src/components/steps/StepCloneRepo.jsx
+msgid "# Enter the folder and install"
+msgstr "# Enter the folder and install"
+
+#: src/components/steps/StepCloneRepo.jsx
+msgid "# Start the setup server"
+msgstr "# Start the setup server"
+
+#: src/components/steps/StepSchedule.jsx
+msgid "<0>Best days:</0> Tuesday, Wednesday and Thursday - Wednesday often ranks highest. Weekends are usually weakest for professional content."
+msgstr "<0>Best days:</0> Tuesday, Wednesday and Thursday - Wednesday often ranks highest. Weekends are usually weakest for professional content."
+
+#: src/components/steps/StepSchedule.jsx
+msgid "<0>Best hours:</0> broadly 9 AM-5 PM in your audience's local time. Studies cluster around mid-to-late morning (9-11/12 AM or 10 AM-2 PM), with strong late-afternoon/early-evening performance (3-8 PM) too."
+msgstr "<0>Best hours:</0> broadly 9 AM-5 PM in your audience's local time. Studies cluster around mid-to-late morning (9-11/12 AM or 10 AM-2 PM), with strong late-afternoon/early-evening performance (3-8 PM) too."
+
+#: src/components/steps/StepSchedule.jsx
+msgid "<0>Note:</0> exact peaks vary by study and audience - treat this as a starting point and test it."
+msgstr "<0>Note:</0> exact peaks vary by study and audience - treat this as a starting point and test it."
+
+#: src/components/Home.jsx
+msgid "01 / pipeline"
+msgstr "01 / pipeline"
+
+#: src/components/Home.jsx
+msgid "02 / privacy"
+msgstr "02 / privacy"
+
+#: src/components/Home.jsx
+msgid "03 / who"
+msgstr "03 / who"
+
+#: src/components/Home.jsx
+msgid "04 / notes"
+msgstr "04 / notes"
+
+#: src/components/steps/StepLinkedIn.jsx
+msgid "A popup will open. Approve the app there and this page will pick up the result automatically."
+msgstr "A popup will open. Approve the app there and this page will pick up the result automatically."
+
+#: src/components/StaticSetup.jsx
+msgid "Add your API credentials"
+msgstr "Add your API credentials"
+
+#: src/components/Home.jsx
+msgid "Anyone tired of writing updates by hand"
+msgstr "Anyone tired of writing updates by hand"
+
+#: src/components/GettingStarted.jsx
+msgid "API credentials"
+msgstr "API credentials"
+
+#: src/components/GettingStarted.jsx
+msgid "API Credentials"
+msgstr "API Credentials"
+
+#. placeholder {0}: times[code]
+#: src/components/steps/StepSchedule.jsx
+msgid "at {0}"
+msgstr "at {0}"
+
+#: src/components/steps/StepSchedule.jsx
+msgid "Change the languages in the previous step. Each selected language gets its own run and its own cron."
+msgstr "Change the languages in the previous step. Each selected language gets its own run and its own cron."
+
+#: src/components/steps/StepVerify.jsx
+msgid "Check credentials"
+msgstr "Check credentials"
+
+#: src/components/StaticSetup.jsx
+msgid "Check every credential against its real API, then generate a post without publishing it."
+msgstr "Check every credential against its real API, then generate a post without publishing it."
+
+#: src/components/GettingStarted.jsx
+#: src/components/StaticSetup.jsx
+msgid "Check your machine"
+msgstr "Check your machine"
+
+#: src/components/HostedBanner.jsx
+msgid "Checking for a local setup server."
+msgstr "Checking for a local setup server."
+
+#: src/components/steps/StepPrerequisites.jsx
+msgid "checking github cli…"
+msgstr "checking github cli…"
+
+#: src/components/steps/StepPrerequisites.jsx
+msgid "checking node.js…"
+msgstr "checking node.js…"
+
+#: src/components/steps/StepVerify.jsx
+msgid "Checks every credential against its real API, so problems show up here rather than tomorrow morning."
+msgstr "Checks every credential against its real API, so problems show up here rather than tomorrow morning."
+
+#: src/components/StaticSetup.jsx
+msgid "Choose up to two languages for your posts, then tailor the prompt the LLM uses to write them. It is stored in `prompt.md` so it is version-controlled and picked up by the scheduled job."
+msgstr "Choose up to two languages for your posts, then tailor the prompt the LLM uses to write them. It is stored in `prompt.md` so it is version-controlled and picked up by the scheduled job."
+
+#: src/components/StaticSetup.jsx
+msgid "Choose when it posts"
+msgstr "Choose when it posts"
+
+#: src/components/steps/StepSave.jsx
+msgid "Choose where to save. Preview first - nothing is written until you confirm."
+msgstr "Choose where to save. Preview first - nothing is written until you confirm."
+
+#: src/components/GettingStarted.jsx
+msgid "Choose your times"
+msgstr "Choose your times"
+
+#: src/components/steps/StepSchedule.jsx
+msgid "city or timezone"
+msgstr "city or timezone"
+
+#: src/components/StaticSetup.jsx
+msgid "Clone and install"
+msgstr "Clone and install"
+
+#: src/components/GettingStarted.jsx
+msgid "Clone and start"
+msgstr "Clone and start"
+
+#: src/components/Home.jsx
+msgid "Clone it, run one command, and let the commits do the talking."
+msgstr "Clone it, run one command, and let the commits do the talking."
+
+#: src/components/GettingStarted.jsx
+msgid "Clone Repository"
+msgstr "Clone Repository"
+
+#: src/components/steps/StepCloneRepo.jsx
+msgid "Clone the repository, install its one dependency, and start the setup server. Everything after this happens in the browser."
+msgstr "Clone the repository, install its one dependency, and start the setup server. Everything after this happens in the browser."
+
+#: src/components/steps/StepPrompt.jsx
+msgid "Commits are scored before they reach this prompt - <0>feat:+5</0>, <1>fix:+4</1>, <2>add/implement/support:+2</2>,<3>test:-1</3>, <4>chore/merge:-2</4>. Only commits scoring 1+ are included, so write the prompt assuming the list is already scored. See <5>scripts/commitScoring.js</5>."
+msgstr "Commits are scored before they reach this prompt - <0>feat:+5</0>, <1>fix:+4</1>, <2>add/implement/support:+2</2>,<3>test:-1</3>, <4>chore/merge:-2</4>. Only commits scoring 1+ are included, so write the prompt assuming the list is already scored. See <5>scripts/commitScoring.js</5>."
+
+#: src/components/Home.jsx
+msgid "commits in"
+msgstr "commits in"
+
+#: src/components/GettingStarted.jsx
+#: src/components/StaticSetup.jsx
+#: src/components/steps/StepLinkedIn.jsx
+msgid "Connect LinkedIn"
+msgstr "Connect LinkedIn"
+
+#: src/components/copyBlock.jsx
+msgid "COPIED"
+msgstr "COPIED"
+
+#: src/components/copyBlock.jsx
+msgid "COPY"
+msgstr "COPY"
+
+#: src/components/copyBlock.jsx
+msgid "Copy to clipboard"
+msgstr "Copy to clipboard"
+
+#. placeholder {0}: res.status
+#: src/components/Guide.jsx
+msgid "Could not load the guide ({0})"
+msgstr "Could not load the guide ({0})"
+
+#: src/components/steps/StepPrerequisites.jsx
+msgid "Could not reach the setup server: {error}"
+msgstr "Could not reach the setup server: {error}"
+
+#: src/components/StaticSetup.jsx
+msgid "Create a `.env` file next to `package.json` with these values. They are read from the environment and never committed."
+msgstr "Create a `.env` file next to `package.json` with these values. They are read from the environment and never committed."
+
+#: src/components/Home.jsx
+msgid "Credentials live in .env or GitHub secrets"
+msgstr "Credentials live in .env or GitHub secrets"
+
+#: src/components/steps/StepSchedule.jsx
+msgid "Currently committed as"
+msgstr "Currently committed as"
+
+#: src/components/steps/StepSchedule.jsx
+msgid "days"
+msgstr "days"
+
+#: src/components/Home.jsx
+msgid "Developer advocates building a profile"
+msgstr "Developer advocates building a profile"
+
+#: src/components/Home.jsx
+msgid "Developers shipping things quietly"
+msgstr "Developers shipping things quietly"
+
+#: src/components/GettingStarted.jsx
+msgid "Dismiss notification"
+msgstr "Dismiss notification"
+
+#: src/components/Home.jsx
+msgid "docs"
+msgstr "docs"
+
+#: src/components/GettingStarted.jsx
+msgid "done"
+msgstr "done"
+
+#: src/components/Home.jsx
+msgid "Drops changelogs, merges and chore noise"
+msgstr "Drops changelogs, merges and chore noise"
+
+#: src/components/StaticSetup.jsx
+msgid "Each selected language gets its own local time. GitHub scheduled jobs run on UTC, so the wizard converts both times into the cron lines the workflow needs; by hand they are the `schedule:` entries in `.github/workflows/linkedin-post.yml`. Both posts use the same 24-hour commit window, ending at the earliest time you picked."
+msgstr "Each selected language gets its own local time. GitHub scheduled jobs run on UTC, so the wizard converts both times into the cron lines the workflow needs; by hand they are the `schedule:` entries in `.github/workflows/linkedin-post.yml`. Both posts use the same 24-hour commit window, ending at the earliest time you picked."
+
+#: src/components/GettingStarted.jsx
+msgid "Edit Prompt"
+msgstr "Edit Prompt"
+
+#: src/components/StaticSetup.jsx
+msgid "Edit the post prompt"
+msgstr "Edit the post prompt"
+
+#: src/components/GettingStarted.jsx
+msgid "Edit the prompt"
+msgstr "Edit the prompt"
+
+#: src/components/steps/StepPrompt.jsx
+msgid "Edit the prompt the bot sends to the LLM to turn your commits into a LinkedIn post. It is stored in the repo as <0>prompt.md</0>, so it is version-controlled and picked up by the scheduled job automatically."
+msgstr "Edit the prompt the bot sends to the LLM to turn your commits into a LinkedIn post. It is stored in the repo as <0>prompt.md</0>, so it is version-controlled and picked up by the scheduled job automatically."
+
+#: src/components/steps/StepPrompt.jsx
+#: src/components/steps/StepSchedule.jsx
+msgid "English"
+msgstr "English"
+
+#: src/components/steps/StepSchedule.jsx
+msgid "Every day you ticked."
+msgstr "Every day you ticked."
+
+#: src/components/steps/StepSchedule.jsx
+msgid "Every day."
+msgstr "Every day."
+
+#: src/components/steps/StepSchedule.jsx
+msgid "Every weekday you ticked."
+msgstr "Every weekday you ticked."
+
+#: src/components/GettingStarted.jsx
+msgid "Everything is configured. Your next scheduled post will pick it up."
+msgstr "Everything is configured. Your next scheduled post will pick it up."
+
+#: src/components/steps/StepPrerequisites.jsx
+msgid "everything is ready"
+msgstr "everything is ready"
+
+#: src/components/GettingStarted.jsx
+msgid "exit"
+msgstr "exit"
+
+#: src/components/steps/StepSchedule.jsx
+msgid "favourite city"
+msgstr "favourite city"
+
+#: src/components/GettingStarted.jsx
+msgid "finish"
+msgstr "finish"
+
+#: src/components/steps/StepPrerequisites.jsx
+msgid "Found at {path}. Restart your terminal so it can be found."
+msgstr "Found at {path}. Restart your terminal so it can be found."
+
+#: src/components/steps/StepPrompt.jsx
+#: src/components/steps/StepSchedule.jsx
+msgid "French"
+msgstr "French"
+
+#: src/components/steps/StepVerify.jsx
+msgid "Generate a test post"
+msgstr "Generate a test post"
+
+#: src/components/steps/StepCredentials.jsx
+msgid "Get one"
+msgstr "Get one"
+
+#: src/components/Home.jsx
+msgid "get started"
+msgstr "get started"
+
+#: src/components/StaticSetup.jsx
+msgid "Get the code"
+msgstr "Get the code"
+
+#: src/components/StaticSetup.jsx
+msgid "Get the repository and its single dependency."
+msgstr "Get the repository and its single dependency."
+
+#: src/components/StaticSetup.jsx
+msgid "Getting started"
+msgstr "Getting started"
+
+#: src/components/Home.jsx
+msgid "github"
+msgstr "github"
+
+#: src/components/steps/StepSchedule.jsx
+msgid "GitHub can delay a scheduled run by a few minutes under load, so treat these as the earliest they post rather than exact minutes."
+msgstr "GitHub can delay a scheduled run by a few minutes under load, so treat these as the earliest they post rather than exact minutes."
+
+#: src/components/steps/StepPrerequisites.jsx
+msgid "GitHub CLI is not on your PATH"
+msgstr "GitHub CLI is not on your PATH"
+
+#: src/components/steps/StepPrerequisites.jsx
+msgid "GitHub CLI is not signed in"
+msgstr "GitHub CLI is not signed in"
+
+#: src/components/steps/StepPrerequisites.jsx
+msgid "github cli not installed"
+msgstr "github cli not installed"
+
+#: src/components/steps/StepPrerequisites.jsx
+msgid "GitHub CLI not installed"
+msgstr "GitHub CLI not installed"
+
+#: src/components/steps/StepPrerequisites.jsx
+msgid "github cli not on your path"
+msgstr "github cli not on your path"
+
+#: src/components/steps/StepPrerequisites.jsx
+msgid "github cli not signed in"
+msgstr "github cli not signed in"
+
+#: src/components/steps/StepPrerequisites.jsx
+msgid "github cli ready"
+msgstr "github cli ready"
+
+#: src/components/steps/StepCredentials.jsx
+msgid "GitHub token"
+msgstr "GitHub token"
+
+#: src/components/steps/StepCredentials.jsx
+msgid "GitHub username"
+msgstr "GitHub username"
+
+#: src/components/steps/StepSchedule.jsx
+msgid "good posting times (2026 consensus)"
+msgstr "good posting times (2026 consensus)"
+
+#: src/components/Home.jsx
+msgid "Good to know"
+msgstr "Good to know"
+
+#: src/components/steps/StepCredentials.jsx
+msgid "Groq API key"
+msgstr "Groq API key"
+
+#: src/components/Home.jsx
+msgid "Groq models have rate limits"
+msgstr "Groq models have rate limits"
+
+#: src/components/Home.jsx
+msgid "How it works"
+msgstr "How it works"
+
+#: src/components/steps/StepPrerequisites.jsx
+msgid "install"
+msgstr "install"
+
+#: src/components/StaticSetup.jsx
+msgid "Install the CLI with `winget install GitHub.cli`, or `brew install gh` on macOS."
+msgstr "Install the CLI with `winget install GitHub.cli`, or `brew install gh` on macOS."
+
+#. placeholder {0}: gh.path
+#: src/components/steps/StepPrerequisites.jsx
+msgid "It is installed at <0>{0}</0>, but this terminal was started before that. Close it, open a new one, and run <1>npm run setup</1> again."
+msgstr "It is installed at <0>{0}</0>, but this terminal was started before that. Close it, open a new one, and run <1>npm run setup</1> again."
+
+#: src/components/steps/StepSave.jsx
+msgid "Keeps `npm start` and `npm run preflight` working here. Existing values are preserved."
+msgstr "Keeps `npm start` and `npm run preflight` working here. Existing values are preserved."
+
+#: src/components/LanguageSwitcher.jsx
+msgid "Language"
+msgstr "Language"
+
+#: src/components/steps/StepCredentials.jsx
+msgid "Leave blank to use the default. Must be a chat model."
+msgstr "Leave blank to use the default. Must be a chat model."
+
+#: src/components/StaticSetup.jsx
+msgid "Let it run"
+msgstr "Let it run"
+
+#: src/components/steps/StepLinkedIn.jsx
+msgid "LinkedIn connected"
+msgstr "LinkedIn connected"
+
+#: src/components/StaticSetup.jsx
+msgid "LinkedIn needs its own app before it will let the bot post. You will request both products, then authorize."
+msgstr "LinkedIn needs its own app before it will let the bot post. You will request both products, then authorize."
+
+#: src/components/Home.jsx
+msgid "LinkedIn tokens expire about every 60 days"
+msgstr "LinkedIn tokens expire about every 60 days"
+
+#: src/components/Guide.jsx
+msgid "loading_guide…"
+msgstr "loading_guide…"
+
+#: src/App.jsx
+msgid "loading…"
+msgstr "loading…"
+
+#: src/components/steps/StepPrerequisites.jsx
+msgid "macOS: <0>brew install gh</0>"
+msgstr "macOS: <0>brew install gh</0>"
+
+#: src/components/Home.jsx
+msgid "manual updates"
+msgstr "manual updates"
+
+#: src/components/Home.jsx
+msgid "min per renewal"
+msgstr "min per renewal"
+
+#: src/components/steps/StepSchedule.jsx
+msgid "minutes between posts"
+msgstr "minutes between posts"
+
+#: src/components/steps/StepCredentials.jsx
+msgid "Model (optional)"
+msgstr "Model (optional)"
+
+#: src/components/steps/StepSave.jsx
+msgid "Needed for the scheduled daily post. Uses the GitHub CLI on your machine."
+msgstr "Needed for the scheduled daily post. Uses the GitHub CLI on your machine."
+
+#: src/components/steps/StepPrerequisites.jsx
+msgid "Needed to save your credentials as Actions secrets."
+msgstr "Needed to save your credentials as Actions secrets."
+
+#: src/components/steps/StepPrerequisites.jsx
+msgid "Needed to save your credentials as Actions secrets. You can skip it and save to .env only."
+msgstr "Needed to save your credentials as Actions secrets. You can skip it and save to .env only."
+
+#: src/components/GettingStarted.jsx
+msgid "next"
+msgstr "next"
+
+#: src/components/StaticSetup.jsx
+msgid "Nine steps, about ten minutes. Nothing here needs a browser-based setup: run the commands in your terminal and everything works the same way."
+msgstr "Nine steps, about ten minutes. Nothing here needs a browser-based setup: run the commands in your terminal and everything works the same way."
+
+#: src/components/Home.jsx
+msgid "No accounts, no tracking, no telemetry"
+msgstr "No accounts, no tracking, no telemetry"
+
+#: src/components/Home.jsx
+msgid "no copy-paste"
+msgstr "no copy-paste"
+
+#: src/components/steps/StepSchedule.jsx
+msgid "No match. Try a city name or an IANA zone."
+msgstr "No match. Try a city name or an IANA zone."
+
+#: src/components/steps/StepPrerequisites.jsx
+msgid "Node, the GitHub CLI and every required variable are in place. Continue to fill in your credentials."
+msgstr "Node, the GitHub CLI and every required variable are in place. Continue to fill in your credentials."
+
+#: src/components/steps/StepPrerequisites.jsx
+msgid "node.js 20 or newer required"
+msgstr "node.js 20 or newer required"
+
+#: src/components/steps/StepPrerequisites.jsx
+msgid "node.js detected"
+msgstr "node.js detected"
+
+#: src/components/Guide.jsx
+msgid "On this page"
+msgstr "On this page"
+
+#: src/components/steps/StepPrompt.jsx
+msgid "One post per language, up to two. Keep at least one checked; choose each language's time in the next step."
+msgstr "One post per language, up to two. Keep at least one checked; choose each language's time in the next step."
+
+#: src/components/steps/StepSchedule.jsx
+msgid "Only used when both languages are set to the same time."
+msgstr "Only used when both languages are set to the same time."
+
+#: src/components/Home.jsx
+msgid "open source"
+msgstr "open source"
+
+#: src/components/Home.jsx
+msgid "Open source maintainers"
+msgstr "Open source maintainers"
+
+#: src/components/steps/StepSchedule.jsx
+msgid "Pick a time for each language. GitHub runs scheduled jobs on UTC and has no timezone setting, so the wizard converts each time and shows you the exact crons that get written."
+msgstr "Pick a time for each language. GitHub runs scheduled jobs on UTC and has no timezone setting, so the wizard converts each time and shows you the exact crons that get written."
+
+#: src/components/steps/StepPrompt.jsx
+#: src/components/steps/StepSchedule.jsx
+msgid "Portuguese"
+msgstr "Portuguese"
+
+#: src/components/steps/StepPrompt.jsx
+msgid "Post languages"
+msgstr "Post languages"
+
+#: src/components/steps/StepPrompt.jsx
+msgid "Post prompt template"
+msgstr "Post prompt template"
+
+#: src/components/GettingStarted.jsx
+msgid "Post Schedule"
+msgstr "Post Schedule"
+
+#: src/components/steps/StepSchedule.jsx
+msgid "post time for {code}"
+msgstr "post time for {code}"
+
+#: src/components/steps/StepSchedule.jsx
+msgid "post times"
+msgstr "post times"
+
+#: src/components/Home.jsx
+msgid "posts out"
+msgstr "posts out"
+
+#: src/components/steps/StepPrerequisites.jsx
+msgid "prefer the terminal? the same checks work headlessly:"
+msgstr "prefer the terminal? the same checks work headlessly:"
+
+#: src/components/GettingStarted.jsx
+msgid "Prerequisites"
+msgstr "Prerequisites"
+
+#: src/components/GettingStarted.jsx
+msgid "prev"
+msgstr "prev"
+
+#: src/components/steps/StepSave.jsx
+msgid "Preview"
+msgstr "Preview"
+
+#: src/components/Home.jsx
+msgid "privacy"
+msgstr "privacy"
+
+#: src/components/steps/StepPrompt.jsx
+msgid "Prompt saved to <0>prompt.md</0> and settings to <1>post.config.json</1> - commit and push both files for the scheduled job to use them. If you changed the language list, the workflow schedule was updated too."
+msgstr "Prompt saved to <0>prompt.md</0> and settings to <1>post.config.json</1> - commit and push both files for the scheduled job to use them. If you changed the language list, the workflow schedule was updated too."
+
+#: src/components/Home.jsx
+msgid "Publishes to LinkedIn on a schedule"
+msgstr "Publishes to LinkedIn on a schedule"
+
+#: src/components/StaticSetup.jsx
+msgid "Push them to GitHub Actions secrets so the scheduled job can use them, and to your `.env` so local runs keep working."
+msgstr "Push them to GitHub Actions secrets so the scheduled job can use them, and to your `.env` so local runs keep working."
+
+#: src/components/Guide.jsx
+#: src/components/StaticSetup.jsx
+msgid "Raw markdown"
+msgstr "Raw markdown"
+
+#: src/components/steps/StepCredentials.jsx
+msgid "Read access to your public repositories."
+msgstr "Read access to your public repositories."
+
+#: src/components/StaticSetup.jsx
+msgid "Read the LinkedIn setup guide"
+msgstr "Read the LinkedIn setup guide"
+
+#: src/components/steps/StepPrerequisites.jsx
+msgid "reading environment variables."
+msgstr "reading environment variables."
+
+#: src/components/Home.jsx
+msgid "ready when you are"
+msgstr "ready when you are"
+
+#: src/components/steps/StepPrompt.jsx
+msgid "replaced with the scored commit list"
+msgstr "replaced with the scored commit list"
+
+#: src/components/steps/StepPrompt.jsx
+msgid "replaced with your GitHub username"
+msgstr "replaced with your GitHub username"
+
+#: src/components/steps/StepPrerequisites.jsx
+msgid "Run gh auth login."
+msgstr "Run gh auth login."
+
+#. placeholder {0}: health.node
+#: src/components/steps/StepPrerequisites.jsx
+msgid "Running {0}"
+msgstr "Running {0}"
+
+#: src/components/Home.jsx
+msgid "runs daily"
+msgstr "runs daily"
+
+#: src/components/Home.jsx
+msgid "Runs on your machine, not on a server"
+msgstr "Runs on your machine, not on a server"
+
+#: src/components/Home.jsx
+msgid "runs on your schedule"
+msgstr "runs on your schedule"
+
+#: src/components/steps/StepSave.jsx
+msgid "Save as GitHub Actions secrets"
+msgstr "Save as GitHub Actions secrets"
+
+#: src/components/GettingStarted.jsx
+#: src/components/steps/StepSave.jsx
+msgid "Save credentials"
+msgstr "Save credentials"
+
+#: src/components/GettingStarted.jsx
+msgid "Save Credentials"
+msgstr "Save Credentials"
+
+#: src/components/steps/StepPrompt.jsx
+msgid "Save prompt"
+msgstr "Save prompt"
+
+#: src/components/steps/StepSave.jsx
+msgid "Save to the local .env file"
+msgstr "Save to the local .env file"
+
+#: src/components/StaticSetup.jsx
+msgid "Save your credentials"
+msgstr "Save your credentials"
+
+#: src/components/Home.jsx
+msgid "Scans your repos for the last 24 hours of commits"
+msgstr "Scans your repos for the last 24 hours of commits"
+
+#: src/components/steps/StepSchedule.jsx
+msgid "Search cities or type a timezone."
+msgstr "Search cities or type a timezone."
+
+#: src/components/GettingStarted.jsx
+msgid "setup complete"
+msgstr "setup complete"
+
+#: src/components/Guide.jsx
+msgid "Setup wizard"
+msgstr "Setup wizard"
+
+#: src/components/steps/StepPrerequisites.jsx
+msgid "sign in"
+msgstr "sign in"
+
+#: src/components/Home.jsx
+msgid "source"
+msgstr "source"
+
+#: src/components/steps/StepPrompt.jsx
+#: src/components/steps/StepSchedule.jsx
+msgid "Spanish"
+msgstr "Spanish"
+
+#: src/components/Home.jsx
+msgid "start building"
+msgstr "start building"
+
+#. placeholder {0}: String(currentStep + 1).padStart(2, "0")
+#: src/components/GettingStarted.jsx
+msgid "step {0} / {totalSteps}"
+msgstr "step {0} / {totalSteps}"
+
+#: src/components/Home.jsx
+msgid "steps to set up"
+msgstr "steps to set up"
+
+#: src/components/steps/StepPrerequisites.jsx
+msgid "still to do"
+msgstr "still to do"
+
+#: src/components/Home.jsx
+msgid "stop writing updates"
+msgstr "stop writing updates"
+
+#: src/components/Home.jsx
+msgid "terms"
+msgstr "terms"
+
+#: src/components/steps/StepVerify.jsx
+msgid "Test post (nothing was published)"
+msgstr "Test post (nothing was published)"
+
+#: src/components/steps/StepVerify.jsx
+msgid "Test run failed"
+msgstr "Test run failed"
+
+#: src/components/steps/StepCredentials.jsx
+msgid "The account whose commits should be turned into posts."
+msgstr "The account whose commits should be turned into posts."
+
+#: src/components/steps/StepSchedule.jsx
+msgid "the bot will post at"
+msgstr "the bot will post at"
+
+#: src/components/steps/StepSchedule.jsx
+msgid "The change is in your working copy. Commit and push it for the new schedule to take effect:"
+msgstr "The change is in your working copy. Commit and push it for the new schedule to take effect:"
+
+#: src/components/StaticSetup.jsx
+msgid "The first run is a dry run and only lists what it would set. Add `--apply` to write."
+msgstr "The first run is a dry run and only lists what it would set. Add `--apply` to write."
+
+#: src/components/StaticSetup.jsx
+msgid "The schedule is whatever cron line is in the workflow — the setup wizard has a step that converts a city and time into the UTC cron for you. You can also trigger a run by hand from the Actions tab."
+msgstr "The schedule is whatever cron line is in the workflow — the setup wizard has a step that converts a city and time into the UTC cron for you. You can also trigger a run by hand from the Actions tab."
+
+#: src/components/steps/StepPrerequisites.jsx
+msgid "The setup server is running. Let's confirm it can see everything it needs."
+msgstr "The setup server is running. Let's confirm it can see everything it needs."
+
+#: src/components/steps/StepLinkedIn.jsx
+msgid "The token is held by the setup server and will be written in the next step. Remember that LinkedIn tokens expire after about 60 days, so you will need to come back and reconnect then."
+msgstr "The token is held by the setup server and will be written in the next step. Remember that LinkedIn tokens expire after about 60 days, so you will need to come back and reconnect then."
+
+#: src/components/StaticSetup.jsx
+msgid "The wizard checks your credentials, completes the LinkedIn OAuth flow and writes secrets to your repository. All of that needs a server running on your own machine, so run <0>npm run setup</0> to use it. These steps are the same ones, written out."
+msgstr "The wizard checks your credentials, completes the LinkedIn OAuth flow and writes secrets to your repository. All of that needs a server running on your own machine, so run <0>npm run setup</0> to use it. These steps are the same ones, written out."
+
+#: src/components/steps/StepCredentials.jsx
+msgid "These stay in the setup server's memory until you save them. Nothing is sent anywhere until the next step, and nothing is written until you confirm it."
+msgstr "These stay in the setup server's memory until you save them. Nothing is sent anywhere until the next step, and nothing is written until you confirm it."
+
+#: src/components/steps/StepLinkedIn.jsx
+msgid "This asks LinkedIn for permission to post on your behalf. You need your own LinkedIn app first, with both <0>Sign In with LinkedIn</0> and <1>Share on LinkedIn</1> requested and approved. <2>Read the setup guide</2> for the full walkthrough - it opens alongside this wizard."
+msgstr "This asks LinkedIn for permission to post on your behalf. You need your own LinkedIn app first, with both <0>Sign In with LinkedIn</0> and <1>Share on LinkedIn</1> requested and approved. <2>Read the setup guide</2> for the full walkthrough - it opens alongside this wizard."
+
+#: src/components/Home.jsx
+msgid "This site is the docs, not the bot"
+msgstr "This site is the docs, not the bot"
+
+#: src/components/StaticSetup.jsx
+msgid "Times are picked in your timezone. A cron cannot follow daylight saving, so re-run that step after the clocks change."
+msgstr "Times are picked in your timezone. A cron cannot follow daylight saving, so re-run that step after the clocks change."
+
+#: src/components/steps/StepSchedule.jsx
+msgid "timezone"
+msgstr "timezone"
+
+#: src/components/Home.jsx
+msgid "Tokens go straight to the APIs, nowhere else"
+msgstr "Tokens go straight to the APIs, nowhere else"
+
+#: src/components/Home.jsx
+msgid "Turns what is left into a post with an LLM"
+msgstr "Turns what is left into a post with an LLM"
+
+#: src/components/steps/StepSchedule.jsx
+msgid "Update the workflow"
+msgstr "Update the workflow"
+
+#. placeholder {0}: result.envUpdated.join(", ")
+#: src/components/steps/StepSave.jsx
+msgid "Updated in .env: {0}"
+msgstr "Updated in .env: {0}"
+
+#: src/components/StaticSetup.jsx
+msgid "Use `{commits}` for the scored commit list and `{hubUser}` for your GitHub username."
+msgstr "Use `{commits}` for the scored commit list and `{hubUser}` for your GitHub username."
+
+#. placeholder {0}: PLACEHOLDERS.map((p) => p.name).join(", ")
+#: src/components/steps/StepPrompt.jsx
+msgid "Use <0>{0}</0> as placeholders - they are filled in automatically when the post is generated."
+msgstr "Use <0>{0}</0> as placeholders - they are filled in automatically when the post is generated."
+
+#: src/components/steps/StepCredentials.jsx
+msgid "Used to generate the post text."
+msgstr "Used to generate the post text."
+
+#: src/components/GettingStarted.jsx
+msgid "Verify"
+msgstr "Verify"
+
+#: src/components/GettingStarted.jsx
+msgid "Verify & Test"
+msgstr "Verify & Test"
+
+#: src/components/StaticSetup.jsx
+msgid "Verify, then try a post"
+msgstr "Verify, then try a post"
+
+#: src/components/Home.jsx
+msgid "view source"
+msgstr "view source"
+
+#: src/components/steps/StepLinkedIn.jsx
+msgid "Waiting for LinkedIn…"
+msgstr "Waiting for LinkedIn…"
+
+#: src/components/Home.jsx
+msgid "Who it's for"
+msgstr "Who it's for"
+
+#: src/components/StaticSetup.jsx
+msgid "Why is this read-only?"
+msgstr "Why is this read-only?"
+
+#: src/components/steps/StepPrompt.jsx
+#: src/components/steps/StepSave.jsx
+#: src/components/steps/StepSchedule.jsx
+msgid "Working…"
+msgstr "Working…"
+
+#: src/components/HostedBanner.jsx
+msgid "You are viewing the hosted copy, so the setup wizard is read-only. The checks, OAuth and credential saving all run on your own machine. Clone the repository and run <0>npm run setup</0> to use it."
+msgstr "You are viewing the hosted copy, so the setup wizard is read-only. The checks, OAuth and credential saving all run on your own machine. Clone the repository and run <0>npm run setup</0> to use it."
+
+#: src/components/Home.jsx
+msgid "You bring your own API keys"
+msgstr "You bring your own API keys"
+
+#: src/components/steps/StepPrerequisites.jsx
+msgid "You can continue anyway: the wizard will simply skip saving to GitHub secrets if the CLI is unusable."
+msgstr "You can continue anyway: the wizard will simply skip saving to GitHub secrets if the CLI is unusable."
+
+#: src/components/StaticSetup.jsx
+msgid "You need Node.js 20 or newer, and the GitHub CLI, which is what writes your credentials as Actions secrets."
+msgstr "You need Node.js 20 or newer, and the GitHub CLI, which is what writes your credentials as Actions secrets."
+
+#: src/components/StaticSetup.jsx
+msgid "You need your own LinkedIn app first, with both Sign In with LinkedIn and Share on LinkedIn approved. The full walkthrough, including screenshots and troubleshooting, is in the guide."
+msgstr "You need your own LinkedIn app first, with both Sign In with LinkedIn and Share on LinkedIn approved. The full walkthrough, including screenshots and troubleshooting, is in the guide."
+
+#: src/components/Home.jsx
+msgid "Your data, your control"
+msgstr "Your data, your control"
+
+#: src/components/Home.jsx
+msgid "Your GitHub activity becomes a LinkedIn post every day, without you writing a single update. Open source, runs on your machine, keys stay yours."
+msgstr "Your GitHub activity becomes a LinkedIn post every day, without you writing a single update. Open source, runs on your machine, keys stay yours."
+
+#: src/components/Home.jsx
+msgid "your keys stay yours"
+msgstr "your keys stay yours"

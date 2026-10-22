@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { api } from "../lib/api.js";
+import { Trans } from "@lingui/react/macro";
 
 /**
  * The setup server only exists on the user's machine. On the hosted site it is
@@ -30,7 +31,7 @@ export default function HostedBanner() {
         <span className="material-symbols-outlined text-[20px]">info</span>
         <p>
           {status === "hosted" ? (
-            <>
+            <Trans>
               You are viewing the hosted copy, so the setup wizard is read-only.
               The checks, OAuth and credential saving all run on your own
               machine. Clone the repository and run{" "}
@@ -38,9 +39,11 @@ export default function HostedBanner() {
                 npm run setup
               </code>{" "}
               to use it.
-            </>
+            </Trans>
           ) : (
-            <span className="opacity-60">Checking for a local setup server…</span>
+            <span className="opacity-60">
+              <Trans>Checking for a local setup server.</Trans>
+            </span>
           )}
         </p>
       </div>
