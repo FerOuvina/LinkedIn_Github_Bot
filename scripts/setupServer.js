@@ -9,6 +9,11 @@ import { preflight } from "./preflight.js";
 import { syncSecrets, formatSyncResult } from "./syncSecrets.js";
 import { writeEnvFile } from "./envFile.js";
 import { stripBase, WEB_BASE } from "./webBase.js";
+import {
+  PRIVACY_PREFIX,
+  privacyContentType,
+  resolvePrivacyFile,
+} from "./privacyPage.js";
 import { envMissing } from "./validations.js";
 import { MAX_POST_LANGUAGES, languageName, parseLanguages } from "./languages.js";
 import {
@@ -288,8 +293,8 @@ linkedin,
   /** Tokens waiting to be collected by the wizard. In memory only. */
   const pending = new Map();
   const runDryRunImpl = dryRunImpl ?? defaultDryRun;
-  const resolvedDocsDir =
-    docsDir ?? path.join(path.dirname(fileURLToPath(import.meta.url)), "..", "docs");
+  const repoRoot = path.join(path.dirname(fileURLToPath(import.meta.url)), "..");
+  const resolvedDocsDir = docsDir ?? path.join(repoRoot, "docs");
 
   const resolvedWebDir =
     webDir ?? path.join(path.dirname(fileURLToPath(import.meta.url)), "..", "web", "dist");
@@ -341,6 +346,33 @@ linkedin,
     // Anything else is a client route (/guide, /getting-started).
     if (!existsSync(indexFile)) return false;
     send(indexFile);
+    return true;
+  }
+
+  /**
+   * Privacy keeps its own page on Pages, so the SPA shell must not swallow it.
+   * The bare path redirects so the page's relative markdown fetch resolves.
+   */
+  function servePrivacy(pathname, original, res) {
+    if (pathname === PRIVACY_PREFIX) {
+      res.writeHead(302, { Location: `${original.pathname}/${original.search}` });
+      res.end();
+      return true;
+    }
+
+    if (!pathname.startsWith(`${PRIVACY_PREFIX}/`)) return false;
+
+    const file = resolvePrivacyFile(pathname);
+    const target = file ? path.join(repoRoot, file) : null;
+
+    if (!target || !existsSync(target) || !statSync(target).isFile()) {
+      res.writeHead(404, { "Content-Type": "text/plain; charset=utf-8" });
+      res.end("Not found");
+      return true;
+    }
+
+    res.writeHead(200, { "Content-Type": privacyContentType(file) });
+    res.end(readFileSync(target));
     return true;
   }
 
@@ -726,6 +758,8 @@ if (!state?.isValid(url.searchParams.get("state"))) {
     }
 
     if (!handler) {
+      if (servePrivacy(url.pathname, rawUrl, res)) return;
+
       if (url.pathname === "/docs" || url.pathname.startsWith("/docs/")) {
         if (!serveDocs(url.pathname, res)) {
           sendJson(res, 404, { ok: false, error: `No doc at ${url.pathname}` });
