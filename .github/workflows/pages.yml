@@ -8,6 +8,7 @@ on:
       - "docs/**"
       - "index.html"
       - "privacy-policy.md"
+      - "privacy-policy.es.md"
   workflow_dispatch:
 
 permissions:
@@ -59,7 +60,7 @@ jobs:
           # The privacy policy keeps its own page at /privacy-policy/.
           mkdir -p _site/privacy-policy
           cp index.html _site/privacy-policy/index.html
-          cp privacy-policy.md _site/privacy-policy/
+          cp privacy-policy.md privacy-policy.es.md _site/privacy-policy/
 
           # Never publish the repository's own files.
           rm -rf _site/src _site/scripts _site/tests _site/node_modules _site/package.json

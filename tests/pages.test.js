@@ -92,6 +92,7 @@ describe("pages deployment", () => {
   it("keeps the privacy policy on its own page", () => {
     expect(pages).toContain("_site/privacy-policy/index.html");
     expect(pages).toContain("privacy-policy.md");
+    expect(pages).toContain("privacy-policy.es.md");
   });
 
   it("never publishes repository source or dependencies", () => {
