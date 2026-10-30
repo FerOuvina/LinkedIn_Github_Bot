@@ -4,6 +4,7 @@ import { Trans } from '@lingui/react/macro';
 import { msg } from '@lingui/core/macro';
 import CopyBlock from './copyBlock.jsx';
 import LanguageSwitcher from './LanguageSwitcher.jsx';
+import ThemeSwitcher from './ThemeSwitcher.jsx';
 import { docsUrl } from '../lib/api.js';
 
 /**
@@ -99,8 +100,9 @@ export default function StaticSetup() {
             </span>
             <span className='text-sm ff-mono'>setup_guide</span>
           </Link>
-          <div className='flex items-center gap-3'>
+          <div className='flex flex-wrap items-center gap-3'>
             <LanguageSwitcher />
+            <ThemeSwitcher />
             <a
               href='https://github.com/FerOuvina/LinkedIn_Github_Bot'
               target='_blank'

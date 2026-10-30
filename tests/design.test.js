@@ -9,14 +9,48 @@ const css = readFileSync(path.join(ROOT, "web", "src", "index.css"), "utf8");
 const tailwind = readFileSync(path.join(ROOT, "web", "tailwind.config.js"), "utf8");
 const webIndex = readFileSync(path.join(ROOT, "web", "index.html"), "utf8");
 
-const PALETTE = ["#ff2e88", "#00e5ff", "#ccff00", "#07070a", "#101017", "#26262f"];
+const PALETTE = ["void", "panel", "shell", "edge", "bone", "ash", "primary", "crimson", "cyan", "acid"];
+
+function paletteValue(source, name) {
+  const hex = source.match(new RegExp(`--${name}:\\s*(#[0-9a-f]{6})`, "i"));
+  if (hex) return hex[1].toLowerCase();
+
+  const rgb = source.match(
+    new RegExp(`--${name}:\\s*(\\d+)\\s+(\\d+)\\s+(\\d+)`, "i")
+  );
+  if (!rgb) return null;
+
+  return `#${rgb
+    .slice(1, 4)
+    .map((channel) => Number(channel).toString(16).padStart(2, "0"))
+    .join("")}`;
+}
 
 describe("privacy policy page", () => {
   it("uses the same palette as the app", () => {
-    for (const colour of PALETTE) {
-      expect(privacyPage, `privacy page is missing ${colour}`).toContain(colour);
-      expect(tailwind, `app theme is missing ${colour}`).toContain(colour);
+    for (const name of PALETTE) {
+      expect(
+        paletteValue(privacyPage, name),
+        `privacy page is missing --${name}`
+      ).toBeTruthy();
+      expect(
+        paletteValue(css, name),
+        `app theme is missing --${name}`
+      ).toBe(paletteValue(privacyPage, name));
     }
+  });
+
+  it("offers a light palette and remembers the choice", () => {
+    for (const source of [css, privacyPage]) {
+      expect(source).toContain(':root[data-theme="light"]');
+    }
+
+    for (const source of [privacyPage, webIndex]) {
+      expect(source).toContain('localStorage.getItem("theme")');
+    }
+
+    expect(css).toContain("--void: 246 241 232");
+    expect(privacyPage).toContain("--void: #f6f1e8");
   });
 
   it("uses the same fonts", () => {

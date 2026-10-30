@@ -84,6 +84,10 @@ msgstr "Credenciales de API"
 msgid "at {0}"
 msgstr "a las {0}"
 
+#: src/components/ThemeSwitcher.jsx
+msgid "auto"
+msgstr "sistema"
+
 #: src/components/steps/StepSchedule.jsx
 msgid "Change the languages in the previous step. Each selected language gets its own run and its own cron."
 msgstr "Cambia los idiomas en el paso anterior. Cada idioma seleccionado tiene su propia ejecución y su propio cron."
@@ -203,6 +207,10 @@ msgstr "Las credenciales viven en .env o en los secrets de GitHub"
 #: src/components/steps/StepSchedule.jsx
 msgid "Currently committed as"
 msgstr "Actualmente confirmado como"
+
+#: src/components/ThemeSwitcher.jsx
+msgid "dark"
+msgstr "oscuro"
 
 #: src/components/steps/StepSchedule.jsx
 msgid "days"
@@ -414,6 +422,10 @@ msgstr "Déjalo en blanco para usar el valor por defecto. Debe ser un modelo de 
 #: src/components/StaticSetup.jsx
 msgid "Let it run"
 msgstr "Déjalo correr"
+
+#: src/components/ThemeSwitcher.jsx
+msgid "light"
+msgstr "claro"
 
 #: src/components/steps/StepLinkedIn.jsx
 msgid "LinkedIn connected"
@@ -748,6 +760,10 @@ msgstr "El servidor de configuración guarda el token y se escribirá en el paso
 #: src/components/StaticSetup.jsx
 msgid "The wizard checks your credentials, completes the LinkedIn OAuth flow and writes secrets to your repository. All of that needs a server running on your own machine, so run <0>npm run setup</0> to use it. These steps are the same ones, written out."
 msgstr "El wizard verifica tus credenciales, completa el flujo OAuth de LinkedIn y escribe secrets en tu repositorio. Todo eso necesita un servidor corriendo en tu propia máquina, así que ejecuta <0>npm run setup</0> para usarlo. Estos pasos son los mismos, escritos."
+
+#: src/components/ThemeSwitcher.jsx
+msgid "Theme"
+msgstr "Tema"
 
 #: src/components/steps/StepCredentials.jsx
 msgid "These stay in the setup server's memory until you save them. Nothing is sent anywhere until the next step, and nothing is written until you confirm it."

@@ -9,6 +9,29 @@
       name="description"
       content="Turn your GitHub commits into LinkedIn posts, automatically."
     />
+    <script>
+      (() => {
+        try {
+          const stored = localStorage.getItem("theme");
+          const choice =
+            stored === "light" || stored === "dark" || stored === "system"
+              ? stored
+              : "dark";
+          const systemPrefersDark = window.matchMedia(
+            "(prefers-color-scheme: dark)"
+          ).matches;
+          const resolved =
+            choice === "light" || (choice === "system" && !systemPrefersDark)
+              ? "light"
+              : "dark";
+
+          document.documentElement.dataset.theme = resolved;
+          document.documentElement.style.colorScheme = resolved;
+        } catch {
+          document.documentElement.dataset.theme = "dark";
+        }
+      })();
+    </script>
 
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
