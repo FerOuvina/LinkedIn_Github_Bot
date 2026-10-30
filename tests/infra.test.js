@@ -92,6 +92,14 @@ describe("workflow permissions", () => {
   });
 });
 
+describe("posting credentials", () => {
+  it("uses a PAT instead of the installation token for GitHub API calls", () => {
+    // github.token cannot call /user and is rejected by the credential check.
+    expect(post).toContain("GITHUB_TOKEN: ${{ secrets.GH_PAT }}");
+    expect(post).not.toContain("${{ github.token }}");
+  });
+});
+
 describe("pages deployment", () => {
   // The deployment rules live in tests/pages.test.js.
 

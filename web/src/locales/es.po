@@ -55,6 +55,10 @@ msgstr "03 / para quién"
 msgid "04 / notes"
 msgstr "04 / notas"
 
+#: src/components/steps/StepCredentials.jsx
+msgid "A classic token with read:user. Add repo for private repositories."
+msgstr "Un token clásico con read:user. Agrega repo para repositorios privados."
+
 #: src/components/steps/StepLinkedIn.jsx
 msgid "A popup will open. Approve the app there and this page will pick up the result automatically."
 msgstr "Se abrirá una ventana emergente. Aprueba la app allí y esta página recogerá el resultado automáticamente."
@@ -584,10 +588,6 @@ msgstr "Ponlas en los secrets de GitHub Actions para que el job programado pueda
 #: src/components/StaticSetup.jsx
 msgid "Raw markdown"
 msgstr "Markdown original"
-
-#: src/components/steps/StepCredentials.jsx
-msgid "Read access to your public repositories."
-msgstr "Acceso de lectura a tus repositorios públicos."
 
 #: src/components/StaticSetup.jsx
 msgid "Read the LinkedIn setup guide"
