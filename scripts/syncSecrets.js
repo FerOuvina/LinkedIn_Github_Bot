@@ -1,19 +1,32 @@
 import "dotenv/config";
 import { spawn } from "node:child_process";
 
-/** Secrets the scheduled job actually needs from the repository. */
+/** Values the scheduled job needs; GITHUB_TOKEN is uploaded as GH_PAT. */
 export const REQUIRED_SECRETS = [
   "HUB_USER",
+  "GITHUB_TOKEN",
   "LINKEDIN_ACCESS_TOKEN",
   "LINKEDIN_AUTHOR_URN",
   "GROQ_API_KEY",
 ];
 
 /**
- * Never pushed to the repository.
+ * Local .env names that cannot be repository secret names.
  *
  * GITHUB_TOKEN: the API rejects the name outright (HTTP 422 — `GITHUB_` is
- * reserved); the workflow uses ${{ github.token }} instead.
+ * reserved), so it is pushed as GH_PAT. The automatic Actions token is an
+ * installation token and cannot call /user, which the preflight check needs.
+ */
+export const SECRET_ALIASES = {
+  GITHUB_TOKEN: "GH_PAT",
+};
+
+const SOURCE_BY_SECRET = Object.fromEntries(
+  Object.entries(SECRET_ALIASES).map(([source, secret]) => [secret, source])
+);
+
+/**
+ * Never pushed to the repository.
  *
  * LINKEDIN_CLIENT_ID / LINKEDIN_CLIENT_SECRET: only needed to run the auth
  * flow locally. The scheduled job posts with the access token alone, so
@@ -21,7 +34,6 @@ export const REQUIRED_SECRETS = [
  * tokens as your app.
  */
 export const LOCAL_ONLY_SECRETS = [
-  "GITHUB_TOKEN",
   "LINKEDIN_CLIENT_ID",
   "LINKEDIN_CLIENT_SECRET",
 ];
@@ -72,8 +84,9 @@ export function planSecrets(
     }
 
     const required = REQUIRED_SECRETS.includes(name);
+    const secret = SECRET_ALIASES[name] ?? name;
 
-    if (value) set.push(name);
+    if (value) set.push(secret);
     else if (required) missing.push(name);
     else skipped.push(name);
   }
@@ -120,7 +133,7 @@ export async function syncSecrets({
 
     try {
       // Value goes over stdin, never as an argument.
-      await runCmd("gh", args, { input: env[name] });
+      await runCmd("gh", args, { input: env[SOURCE_BY_SECRET[name] ?? name] });
       applied.push(name);
     } catch (err) {
       return {

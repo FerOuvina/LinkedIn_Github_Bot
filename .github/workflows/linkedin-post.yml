@@ -34,9 +34,10 @@ jobs:
       - name: Run Daily Summary Script (Live)
         env:
           HUB_USER: ${{ secrets.HUB_USER }}
-          # The automatic job token. A secret named GITHUB_TOKEN is rejected by
-          # the API (reserved prefix), which is why this is not a repository secret.
-          GITHUB_TOKEN: ${{ github.token }}
+          # The automatic job token is an installation token and cannot call
+          # /user. Use a PAT stored as GH_PAT; a secret named GITHUB_TOKEN is
+          # rejected because the GITHUB_ prefix is reserved.
+          GITHUB_TOKEN: ${{ secrets.GH_PAT }}
           LINKEDIN_ACCESS_TOKEN: ${{ secrets.LINKEDIN_ACCESS_TOKEN }}
           LINKEDIN_AUTHOR_URN: ${{ secrets.LINKEDIN_AUTHOR_URN }}
           GROQ_API_KEY: ${{ secrets.GROQ_API_KEY }}

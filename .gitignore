@@ -6,4 +6,7 @@ postTestLinkedIn.js
 
 node_modules
 
+# Lingui output; the Vite plugin compiles the .po catalogs.
+web/src/locales/*.js
+
 /AGENTS.md

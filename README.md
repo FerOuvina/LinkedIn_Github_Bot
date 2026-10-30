@@ -27,7 +27,7 @@ You need Node 24 (see `.nvmrc`) and a `.env` file with:
 | Variable | What it's for |
 | --- | --- |
 | `HUB_USER` | Your GitHub username |
-| `GITHUB_TOKEN` | Any GitHub token with public repo read access. Local runs only — GitHub rejects repository secrets whose name starts with `GITHUB_`, and the scheduled job uses the automatic `${{ github.token }}` instead |
+| `GITHUB_TOKEN` | Classic PAT with `read:user`, plus `repo` if your commits live in private repositories. The setup script syncs it to the `GH_PAT` Actions secret; the automatic job token cannot call `/user` |
 | `LINKEDIN_ACCESS_TOKEN` | LinkedIn OAuth token that permits posting (`ugcPosts`) |
 | `LINKEDIN_AUTHOR_URN` | Your `urn:li:person:...` identifier |
 | `GROQ_API_KEY` | Key for the LLM ([console.groq.com](https://console.groq.com)) |

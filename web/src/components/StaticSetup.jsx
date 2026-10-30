@@ -36,7 +36,7 @@ const STEPS = [
     commands: [
       '# your GitHub username',
       'HUB_USER=your-username',
-      '# read access to your public repositories',
+      '# classic PAT with read:user; add repo for private repositories',
       'GITHUB_TOKEN=github_pat_...',
       '# from https://console.groq.com/keys',
       'GROQ_API_KEY=gsk_...',

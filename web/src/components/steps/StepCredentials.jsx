@@ -15,7 +15,7 @@ const FIELDS = [
     label: msg`GitHub token`,
     type: "password",
     placeholder: "github_pat_.",
-    help: msg`Read access to your public repositories.`,
+    help: msg`A classic token with read:user. Add repo for private repositories.`,
     link: "https://github.com/settings/tokens",
   },
   {
