@@ -6,6 +6,28 @@
     <meta name="theme-color" content="#07070a" />
     <meta name="description" content="Privacy policy for the GitHub to LinkedIn bot." />
 
+    <script>
+      (() => {
+        try {
+          const stored = localStorage.getItem("theme");
+          const choice =
+            stored === "light" || stored === "dark" || stored === "system"
+              ? stored
+              : "dark";
+          const systemPrefersDark = window.matchMedia(
+            "(prefers-color-scheme: dark)"
+          ).matches;
+          const dark =
+            choice === "dark" || (choice === "system" && systemPrefersDark);
+
+          document.documentElement.dataset.theme = dark ? "dark" : "light";
+          document.documentElement.style.colorScheme = dark ? "dark" : "light";
+        } catch {
+          document.documentElement.dataset.theme = "dark";
+        }
+      })();
+    </script>
+
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link
@@ -21,6 +43,7 @@
 
     <style>
       :root {
+        color-scheme: dark;
         --void: #07070a;
         --panel: #101017;
         --shell: #17171f;
@@ -31,6 +54,28 @@
         --crimson: #ff0044;
         --cyan: #00e5ff;
         --acid: #ccff00;
+        --header-bg: rgba(7, 7, 10, 0.92);
+        --muted-text: rgba(244, 244, 245, 0.86);
+        --scanline: rgba(255, 255, 255, 0.035);
+        --grid-line: rgba(255, 46, 136, 0.07);
+      }
+
+      :root[data-theme="light"] {
+        color-scheme: light;
+        --void: #f6f1e8;
+        --panel: #fdf9f2;
+        --shell: #ede7db;
+        --edge: #c6bba8;
+        --bone: #1a1712;
+        --ash: #5e574a;
+        --primary: #be005a;
+        --crimson: #9e0024;
+        --cyan: #006d7d;
+        --acid: #4e6400;
+        --header-bg: rgba(246, 241, 232, 0.92);
+        --muted-text: rgba(26, 23, 18, 0.86);
+        --scanline: rgba(26, 23, 18, 0.035);
+        --grid-line: rgba(190, 0, 90, 0.08);
       }
 
       * {
@@ -42,8 +87,8 @@
         overflow-x: hidden; /* the ticker is wider than the screen by design */
         background-color: var(--void);
         background-image:
-          linear-gradient(rgba(255, 46, 136, 0.07) 1px, transparent 1px),
-          linear-gradient(90deg, rgba(255, 46, 136, 0.07) 1px, transparent 1px);
+          linear-gradient(var(--grid-line) 1px, transparent 1px),
+          linear-gradient(90deg, var(--grid-line) 1px, transparent 1px);
         background-size: 44px 44px;
         color: var(--bone);
         font-family: "Space Grotesk", system-ui, sans-serif;
@@ -59,8 +104,8 @@
         pointer-events: none;
         background: repeating-linear-gradient(
           to bottom,
-          rgba(255, 255, 255, 0.035) 0px,
-          rgba(255, 255, 255, 0.035) 1px,
+          var(--scanline) 0px,
+          var(--scanline) 1px,
           transparent 1px,
           transparent 3px
         );
@@ -78,7 +123,7 @@
         position: sticky;
         top: 0;
         z-index: 40;
-        background: rgba(7, 7, 10, 0.92);
+        background: var(--header-bg);
         backdrop-filter: blur(8px);
         border-bottom: 2px solid var(--edge);
       }
@@ -116,16 +161,20 @@
         gap: 0.6rem;
       }
 
-      .lang {
+      .lang,
+      .theme {
         display: flex;
         align-items: center;
         gap: 0.25rem;
       }
 
-      .lang a {
+      .lang a,
+      .theme button {
         padding: 0.15rem 0.3rem;
         border: 1px solid var(--edge);
+        background: transparent;
         color: var(--ash);
+        cursor: pointer;
         font-family: "JetBrains Mono", monospace;
         font-size: 0.55rem;
         letter-spacing: 0.12em;
@@ -133,12 +182,14 @@
         text-transform: uppercase;
       }
 
-      .lang a:hover {
+      .lang a:hover,
+      .theme button:hover {
         border-color: var(--primary);
         color: var(--bone);
       }
 
-      .lang a[aria-current="true"] {
+      .lang a[aria-current="true"],
+      .theme button[aria-pressed="true"] {
         border-color: var(--acid);
         background: var(--acid);
         color: var(--void);
@@ -160,6 +211,12 @@
         height: 6px;
         background: var(--acid);
         animation: blink 1s steps(1) infinite;
+      }
+
+      @media (max-width: 40rem) {
+        .status {
+          display: none;
+        }
       }
 
       /* ── Marquee strip, same as the app ───────────────────────────── */
@@ -299,7 +356,7 @@
 
       p,
       li {
-        color: rgba(244, 244, 245, 0.86);
+        color: var(--muted-text);
       }
 
       a {
@@ -478,6 +535,11 @@
             <a href="?lang=en" data-locale="en" hreflang="en">EN</a>
             <a href="?lang=es" data-locale="es" hreflang="es">ES</a>
           </nav>
+          <nav class="theme" id="theme" aria-label="Theme">
+            <button type="button" data-theme-choice="system" data-i18n="themeSystem" aria-pressed="false">auto</button>
+            <button type="button" data-theme-choice="dark" data-i18n="themeDark" aria-pressed="false">dark</button>
+            <button type="button" data-theme-choice="light" data-i18n="themeLight" aria-pressed="false">light</button>
+          </nav>
           <span class="status"><span class="dot"></span><span data-i18n="status">policy</span></span>
         </div>
       </div>
@@ -521,6 +583,10 @@
           title: "privacy // github→linkedin",
           description: "Privacy policy for the GitHub to LinkedIn bot.",
           langLabel: "Language",
+          themeLabel: "Theme",
+          themeSystem: "auto",
+          themeDark: "dark",
+          themeLight: "light",
           status: "policy",
           ticker0: "no tracking",
           ticker1: "no accounts",
@@ -540,6 +606,10 @@
           title: "privacidad // github→linkedin",
           description: "Política de privacidad del bot de GitHub a LinkedIn.",
           langLabel: "Idioma",
+          themeLabel: "Tema",
+          themeSystem: "sistema",
+          themeDark: "oscuro",
+          themeLight: "claro",
           status: "privacidad",
           ticker0: "sin rastreo",
           ticker1: "sin cuentas",
@@ -600,6 +670,69 @@
 
       const langEl = document.getElementById("lang");
       if (langEl) langEl.setAttribute("aria-label", t.langLabel);
+
+      const themeEl = document.getElementById("theme");
+      if (themeEl) themeEl.setAttribute("aria-label", t.themeLabel);
+
+      const THEME_KEY = "theme";
+      const THEMES = ["system", "dark", "light"];
+
+      function readTheme() {
+        try {
+          const saved = window.localStorage.getItem(THEME_KEY);
+          if (THEMES.includes(saved)) return saved;
+        } catch (err) {
+          /* storage can be blocked; fall back to dark */
+        }
+        return "dark";
+      }
+
+      function applyTheme(choice) {
+        const systemPrefersDark = window.matchMedia(
+          "(prefers-color-scheme: dark)"
+        ).matches;
+        const resolved =
+          choice === "light" || (choice === "system" && !systemPrefersDark)
+            ? "light"
+            : "dark";
+
+        document.documentElement.dataset.theme = resolved;
+        document.documentElement.style.colorScheme = resolved;
+
+        const themeColor = document.querySelector('meta[name="theme-color"]');
+        if (themeColor) {
+          themeColor.setAttribute(
+            "content",
+            resolved === "light" ? "#f6f1e8" : "#07070a"
+          );
+        }
+
+        document.querySelectorAll("[data-theme-choice]").forEach((el) => {
+          el.setAttribute(
+            "aria-pressed",
+            String(el.dataset.themeChoice === choice)
+          );
+        });
+      }
+
+      document.querySelectorAll("[data-theme-choice]").forEach((el) => {
+        el.addEventListener("click", () => {
+          try {
+            window.localStorage.setItem(THEME_KEY, el.dataset.themeChoice);
+          } catch (err) {
+            /* the page still switches for this load */
+          }
+          applyTheme(el.dataset.themeChoice);
+        });
+      });
+
+      window
+        .matchMedia("(prefers-color-scheme: dark)")
+        .addEventListener("change", () => {
+          if (readTheme() === "system") applyTheme("system");
+        });
+
+      applyTheme(readTheme());
 
       const candidates =
         locale === "es"

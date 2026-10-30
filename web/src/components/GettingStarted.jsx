@@ -9,6 +9,7 @@ import StepSchedule from "./steps/StepSchedule";
 import StepPrompt from "./steps/StepPrompt";
 import StepVerify from "./steps/StepVerify";
 import LanguageSwitcher from "./LanguageSwitcher.jsx";
+import ThemeSwitcher from "./ThemeSwitcher.jsx";
 import { useLingui } from "@lingui/react";
 import { Trans } from "@lingui/react/macro";
 import { msg } from "@lingui/core/macro";
@@ -57,6 +58,7 @@ function GettingStarted() {
             </div>
           </div>
           <LanguageSwitcher className="mt-4 w-fit" />
+          <ThemeSwitcher className="mt-2 w-fit" />
         </div>
 
         <nav className="flex-1 space-y-1 px-3 py-3">
@@ -184,7 +186,7 @@ function GettingStarted() {
           <div
             role="status"
             aria-live="polite"
-            className="animate-toast-in fixed bottom-24 right-4 z-[70] w-[min(22rem,calc(100vw-2rem))] border-2 border-acid bg-panel p-4 shadow-[6px_6px_0_0_#ccff00] md:right-8"
+            className="animate-toast-in fixed bottom-24 right-4 z-[70] w-[min(22rem,calc(100vw-2rem))] border-2 border-acid bg-panel p-4 shadow-hard-acid-lg md:right-8"
           >
             <div className="flex items-start gap-3">
               <span className="material-symbols-outlined text-[22px] text-acid">

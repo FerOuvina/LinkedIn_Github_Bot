@@ -4,6 +4,7 @@ import { Trans } from "@lingui/react/macro";
 import { msg } from "@lingui/core/macro";
 import { sitePath } from "../lib/api.js";
 import LanguageSwitcher from "./LanguageSwitcher.jsx";
+import ThemeSwitcher from "./ThemeSwitcher.jsx";
 
 const COMMITS_IN = msg`commits in`;
 const POSTS_OUT = msg`posts out`;
@@ -117,8 +118,9 @@ export default function Home() {
             </span>
           </a>
 
-          <div className="flex items-center gap-3">
+          <div className="flex flex-wrap items-center gap-3">
             <LanguageSwitcher />
+            <ThemeSwitcher />
             <a
               href={REPO}
               target="_blank"

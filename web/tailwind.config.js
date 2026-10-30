@@ -1,6 +1,8 @@
 import forms from "@tailwindcss/forms";
 import containerQueries from "@tailwindcss/container-queries";
 
+const palette = (name) => `rgb(var(--${name}) / <alpha-value>)`;
+
 /** @type {import('tailwindcss').Config} */
 export default {
   darkMode: "class",
@@ -8,18 +10,18 @@ export default {
   theme: {
     extend: {
       colors: {
-        void: "#07070a",
-        panel: "#101017",
-        shell: "#17171f",
-        edge: "#26262f",
-        bone: "#f4f4f5",
-        ash: "#8b8b9e",
+        void: palette("void"),
+        panel: palette("panel"),
+        shell: palette("shell"),
+        edge: palette("edge"),
+        bone: palette("bone"),
+        ash: palette("ash"),
         // Future Funk: hot pink primary, cyan and acid as secondaries.
-        primary: "#ff2e88",
-        crimson: "#ff0044",
-        cyan: "#00e5ff",
-        acid: "#ccff00",
-        violet: "#7b2dff",
+        primary: palette("primary"),
+        crimson: palette("crimson"),
+        cyan: palette("cyan"),
+        acid: palette("acid"),
+        violet: palette("violet"),
       },
       fontFamily: {
         display: ["Archivo Black", "Impact", "sans-serif"],
@@ -27,11 +29,12 @@ export default {
         mono: ["JetBrains Mono", "ui-monospace", "monospace"],
       },
       boxShadow: {
-        hard: "4px 4px 0 0 #ff2e88",
-        "hard-cyan": "4px 4px 0 0 #00e5ff",
-        "hard-acid": "4px 4px 0 0 #ccff00",
-        glow: "0 0 24px rgba(255,46,136,0.45)",
-        "glow-cyan": "0 0 24px rgba(0,229,255,0.35)",
+        hard: "4px 4px 0 0 rgb(var(--primary))",
+        "hard-cyan": "4px 4px 0 0 rgb(var(--cyan))",
+        "hard-acid": "4px 4px 0 0 rgb(var(--acid))",
+        "hard-acid-lg": "6px 6px 0 0 rgb(var(--acid))",
+        glow: "0 0 24px rgb(var(--primary) / 0.45)",
+        "glow-cyan": "0 0 24px rgb(var(--cyan) / 0.35)",
       },
       keyframes: {
         marquee: {

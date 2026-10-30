@@ -6,6 +6,7 @@ import { rewriteRelativeUrls, extractHeadings } from "../lib/markdown.js";
 import { docsUrl, sitePath } from "../lib/api.js";
 import HostedBanner from "./HostedBanner.jsx";
 import LanguageSwitcher from "./LanguageSwitcher.jsx";
+import ThemeSwitcher from "./ThemeSwitcher.jsx";
 import { useLingui } from "@lingui/react";
 import { Trans } from "@lingui/react/macro";
 import { msg } from "@lingui/core/macro";
@@ -57,8 +58,9 @@ export default function Guide() {
             <span className="material-symbols-outlined text-primary">rocket_launch</span>
             <span className="ff-mono text-sm">github<span className="text-primary">→</span>linkedin</span>
           </Link>
-          <div className="flex items-center gap-3">
+          <div className="flex flex-wrap items-center gap-3">
             <LanguageSwitcher />
+            <ThemeSwitcher />
             <a
               href={docsUrl(guideFile)}
               target="_blank"

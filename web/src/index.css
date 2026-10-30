@@ -3,6 +3,40 @@
 @tailwind utilities;
 
 @layer base {
+  :root {
+    color-scheme: dark;
+    --void: 7 7 10;
+    --panel: 16 16 23;
+    --shell: 23 23 31;
+    --edge: 38 38 47;
+    --bone: 244 244 245;
+    --ash: 139 139 158;
+    --primary: 255 46 136;
+    --crimson: 255 0 68;
+    --cyan: 0 229 255;
+    --acid: 204 255 0;
+    --violet: 123 45 255;
+    --scanline: 255 255 255;
+    --grid-line: 255 46 136;
+  }
+
+  :root[data-theme="light"] {
+    color-scheme: light;
+    --void: 246 241 232;
+    --panel: 253 249 242;
+    --shell: 237 231 219;
+    --edge: 198 187 168;
+    --bone: 26 23 18;
+    --ash: 94 87 74;
+    --primary: 190 0 90;
+    --crimson: 158 0 36;
+    --cyan: 0 109 125;
+    --acid: 78 100 0;
+    --violet: 91 46 168;
+    --scanline: 26 23 18;
+    --grid-line: 190 0 90;
+  }
+
   html {
     scroll-behavior: smooth;
   }
@@ -32,11 +66,11 @@
     height: 10px;
   }
   ::-webkit-scrollbar-track {
-    background: #07070a;
+    background: rgb(var(--void));
   }
   ::-webkit-scrollbar-thumb {
-    background: #ff2e88;
-    border: 2px solid #07070a;
+    background: rgb(var(--primary));
+    border: 2px solid rgb(var(--void));
   }
 }
 
@@ -72,13 +106,13 @@
   }
 
   .glitch::before {
-    color: #00e5ff;
+    color: rgb(var(--cyan));
     transform: translateX(-2px);
     clip-path: inset(0 0 55% 0);
   }
 
   .glitch::after {
-    color: #ff0044;
+    color: rgb(var(--crimson));
     transform: translateX(2px);
     clip-path: inset(45% 0 0 0);
   }
@@ -109,7 +143,7 @@
     position: absolute;
     width: 10px;
     height: 10px;
-    border-color: #00e5ff;
+    border-color: rgb(var(--cyan));
     opacity: 0;
     transition: opacity 150ms linear;
   }
@@ -158,8 +192,11 @@
 
   .ff-input {
     @apply w-full border-2 border-edge bg-void px-4 py-3 font-mono text-sm text-bone
-           placeholder:text-ash focus:border-primary focus:outline-none
-           focus:shadow-[0_0_0_1px_#ff2e88];
+           placeholder:text-ash focus:border-primary focus:outline-none;
+  }
+
+  .ff-input:focus {
+    box-shadow: 0 0 0 1px rgb(var(--primary));
   }
 
   .ff-badge {
@@ -177,8 +214,8 @@
     pointer-events: none;
     background: repeating-linear-gradient(
       to bottom,
-      rgba(255, 255, 255, 0.035) 0px,
-      rgba(255, 255, 255, 0.035) 1px,
+      rgb(var(--scanline) / 0.035) 0px,
+      rgb(var(--scanline) / 0.035) 1px,
       transparent 1px,
       transparent 3px
     );
@@ -186,8 +223,8 @@
 
   .grid-bg {
     background-image:
-      linear-gradient(rgba(255, 46, 136, 0.07) 1px, transparent 1px),
-      linear-gradient(90deg, rgba(255, 46, 136, 0.07) 1px, transparent 1px);
+      linear-gradient(rgb(var(--grid-line) / 0.07) 1px, transparent 1px),
+      linear-gradient(90deg, rgb(var(--grid-line) / 0.07) 1px, transparent 1px);
     background-size: 44px 44px;
   }
 
